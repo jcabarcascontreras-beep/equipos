@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Equipos biomédicos — Clínica La Merced</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --rojo:#C1121F;
+    --rojo-oscuro:#7C0A15;
+    --papel:#FFFFFF;
+    --fondo:#EDEDEB;
+    --tinta:#1A1A1A;
+    --gris:#6B6B6B;
+    --linea:#D8D8D6;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--fondo);color:var(--tinta);
+    font-family:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45;
+  }
+  .hoja{max-width:50rem;margin:0 auto;background:var(--papel);min-height:100vh;box-shadow:0 0 24px rgba(0,0,0,.09)}
+
+  .franja{background:var(--rojo);color:#fff;padding:.9rem 1.2rem}
+  .franja .clinica{font-size:1.15rem;font-weight:700}
+  .franja .area{font-size:.85rem;opacity:.9}
+
+  .cuerpo{padding:1.4rem 1.2rem 2.5rem}
+  .titulo{font-size:1.3rem;font-weight:600;margin:.3rem 0 .2rem}
+  .conteo{color:var(--gris);font-size:.88rem;margin:0 0 1.2rem}
+
+  .buscador{
+    width:100%;padding:.8rem .9rem;font-size:1rem;font-family:inherit;
+    border:2px solid var(--linea);border-radius:.25rem;margin-bottom:1.6rem;
+  }
+  .buscador:focus{outline:none;border-color:var(--rojo)}
+
+  h2{
+    font-size:.95rem;font-weight:700;margin:1.8rem 0 .2rem;
+    padding-bottom:.3rem;border-bottom:2px solid var(--rojo);
+  }
+  .lista{list-style:none;margin:0;padding:0}
+  .lista li{border-bottom:1px solid var(--linea)}
+  .lista a{
+    display:flex;justify-content:space-between;align-items:center;gap:1rem;
+    padding:.85rem 0;color:var(--tinta);text-decoration:none;
+  }
+  .lista a:hover .nombre{color:var(--rojo)}
+  .nombre{font-weight:500}
+  .detalle{display:block;font-size:.85rem;color:var(--gris);font-weight:400}
+  .placa{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.9rem;
+    color:var(--rojo);flex:0 0 auto;
+  }
+  .vacio{display:none;color:var(--gris);padding:1.5rem 0}
+
+  .pie{
+    border-top:3px solid var(--rojo);margin-top:2.4rem;padding:1rem 1.2rem 2rem;
+    font-size:.8rem;color:var(--gris);display:flex;flex-wrap:wrap;
+    justify-content:space-between;gap:.5rem;
+  }
+  .lema{color:var(--rojo);font-weight:600}
+</style>
+</head>
+<body>
+<div class="hoja">
+
+  <div class="franja">
+    <div class="clinica">Clínica La Merced</div>
+    <div class="area">Departamento de Electromedicina</div>
+  </div>
+
+  <div class="cuerpo">
+    <h1 class="titulo">Equipos biomédicos</h1>
+    <p class="conteo" id="conteo"></p>
+
+    <input class="buscador" id="buscador" type="search" placeholder="Buscar por nombre, marca o código">
+
+    <!-- ============ EDITAR DESDE AQUÍ ============ -->
+
+    <section class="grupo">
+      <h2>Maternidad</h2>
+      <ul class="lista">
+        <li><a href="MSV-014/">
+          <span class="nombre">Monitor de signos vitales<span class="detalle">Mindray iMEC 12 · Sala de partos 2</span></span>
+          <span class="placa">MSV-014</span>
+        </a></li>
+        <li><a href="MFT-003/">
+          <span class="nombre">Monitor fetal<span class="detalle">Bistos BT-350 · Sala de partos 1</span></span>
+          <span class="placa">MFT-003</span>
+        </a></li>
+        <li><a href="INC-002/">
+          <span class="nombre">Incubadora neonatal<span class="detalle">Fanem 1186 · Adaptación neonatal</span></span>
+          <span class="placa">INC-002</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <section class="grupo">
+      <h2>Urgencias ginecológicas</h2>
+      <ul class="lista">
+        <li><a href="DOP-007/">
+          <span class="nombre">Doppler fetal<span class="detalle">Edan SD3 · Consultorio 4</span></span>
+          <span class="placa">DOP-007</span>
+        </a></li>
+        <li><a href="ECO-001/">
+          <span class="nombre">Ecógrafo<span class="detalle">Sonoscape S8 · Sala de procedimientos</span></span>
+          <span class="placa">ECO-001</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <section class="grupo">
+      <h2>Esterilización</h2>
+      <ul class="lista">
+        <li><a href="EST-001/">
+          <span class="nombre">Esterilizador de peróxido de hidrógeno<span class="detalle">Steris · Área de esterilización</span></span>
+          <span class="placa">EST-001</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ============ HASTA AQUÍ ============ -->
+
+    <p class="vacio" id="vacio">No hay equipos que coincidan con esa búsqueda.</p>
+  </div>
+
+  <div class="pie">
+    <span class="lema">Seguridad del paciente primero</span>
+    <span>Actualizado el 3 de septiembre de 2026</span>
+  </div>
+
+</div>
+
+<script>
+  var equipos = document.querySelectorAll('.lista li');
+  var grupos = document.querySelectorAll('.grupo');
+  var vacio = document.getElementById('vacio');
+  document.getElementById('conteo').textContent = equipos.length + ' equipos registrados';
+
+  document.getElementById('buscador').addEventListener('input', function (e) {
+    var texto = e.target.value.toLowerCase().trim();
+    var visibles = 0;
+
+    equipos.forEach(function (fila) {
+      var coincide = fila.textContent.toLowerCase().indexOf(texto) !== -1;
+      fila.style.display = coincide ? '' : 'none';
+      if (coincide) visibles++;
+    });
+
+    grupos.forEach(function (grupo) {
+      var quedan = grupo.querySelectorAll('.lista li:not([style*="none"])').length;
+      grupo.style.display = quedan ? '' : 'none';
+    });
+
+    vacio.style.display = visibles ? 'none' : 'block';
+  });
+</script>
+</body>
+</html>
