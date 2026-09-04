@@ -32,6 +32,13 @@
   .franja{background:var(--rojo);color:#fff;padding:.9rem 1.2rem}
   .franja .clinica{font-size:1.15rem;font-weight:700;letter-spacing:.01em}
   .franja .area{font-size:.85rem;opacity:.9}
+  .volver{
+    display:inline-block;margin-bottom:.5rem;
+    color:#fff;text-decoration:none;font-size:.9rem;font-weight:500;
+    border-bottom:1px solid rgba(255,255,255,.5);padding-bottom:1px;
+  }
+  .volver:hover{border-bottom-color:#fff}
+  .volver:focus-visible{outline:2px solid #fff;outline-offset:3px}
 
   .cuerpo{padding:1.4rem 1.2rem 2.5rem}
 
@@ -101,6 +108,7 @@
   <!-- ================= EDITAR DESDE AQUÍ ================= -->
 
   <div class="franja">
+    <a class="volver" href="../">← Volver a todos los equipos</a>
     <div class="clinica">Clínica La Merced</div>
     <div class="area">Departamento de Electromedicina</div>
   </div>
