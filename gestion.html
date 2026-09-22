@@ -36,6 +36,26 @@ header.top small{display:block;opacity:.85;font-size:.85rem}
 .tabs{display:flex;gap:4px;max-width:860px;margin:0 auto;padding:0 12px}
 .tabs button{flex:1;background:none;border:0;color:#fff;opacity:.75;padding:10px 4px 11px;font-weight:700;border-bottom:3px solid transparent;cursor:pointer}
 .tabs button[aria-selected="true"]{opacity:1;border-bottom-color:#fff}
+.tabs button{font-size:.95rem}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0}
+.kpi{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi strong{display:block;font-size:1.9rem;line-height:1.05;font-variant-numeric:tabular-nums}
+.kpi span{color:var(--muted);font-size:.85rem}
+.kpi.s-venc,.kpi.s-sin{border-left-color:var(--red)} .kpi.s-por{border-left-color:var(--amber)} .kpi.s-ok{border-left-color:var(--green)}
+.panelcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0}
+.gauge{height:16px;background:var(--gray-soft);border-radius:999px;overflow:hidden;margin:8px 0 4px}
+.gauge i{display:block;height:100%;background:var(--green)}
+.brow{display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center;margin:7px 0;font-size:.9rem}
+.brow .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btrack{height:14px;background:var(--gray-soft);border-radius:4px;overflow:hidden;display:flex}
+.btrack i{display:block;height:100%}
+.btrack .ok{background:var(--green)} .btrack .por{background:var(--amber)} .btrack .mal{background:var(--red)}
+.mini{color:var(--muted);font-size:.82rem}
+.months{display:flex;align-items:flex-end;gap:6px;height:120px;margin:10px 0 4px}
+.months div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%}
+.months i{display:block;width:100%;background:var(--red);border-radius:4px 4px 0 0;min-height:2px}
+.months b{font-variant-numeric:tabular-nums;font-size:.8rem}
+.months span{color:var(--muted);font-size:.72rem}
 .status{margin:14px 0;padding:10px 12px;border-radius:10px;background:var(--gray-soft);color:var(--muted);font-size:.9rem}
 .status.err{background:var(--red-soft);color:var(--red)}
 .search{display:flex;flex-direction:column;gap:8px;margin:16px 0 10px}
@@ -108,6 +128,7 @@ h2{font-size:1.1rem;margin:20px 0 8px}
   <nav class="tabs" role="tablist">
     <button role="tab" aria-selected="true" data-tab="equipos">Equipos</button>
     <button role="tab" aria-selected="false" data-tab="venc">Vencimientos</button>
+    <button role="tab" aria-selected="false" data-tab="panel">Tablero</button>
   </nav>
 </header>
 
@@ -142,6 +163,9 @@ h2{font-size:1.1rem;margin:20px 0 8px}
     <ul class="list" id="vencList"></ul>
     <button class="more" id="vencMore" hidden>Mostrar más</button>
   </section>
+  <section id="tab-panel" hidden>
+    <div id="panelBody"></div>
+  </section>
 </main>
 
 <button class="fab" id="addBtn" hidden>+ Nuevo equipo</button>
@@ -156,7 +180,7 @@ h2{font-size:1.1rem;margin:20px 0 8px}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, doc, onSnapshot, getDoc, setDoc, updateDoc, deleteField, writeBatch, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, getDoc, getDocs, setDoc, updateDoc, deleteField, writeBatch, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -307,6 +331,7 @@ function eventoForm(e){
       if(item.tipo==='Calibración'&&item.fecha){
         await patchEquipo(e,{ultimaCal:item.fecha,vence:addMonths(item.fecha,$('#evMeses').value||12),metrologia:(e.metrologia&&e.metrologia!=='NO REQUIERE')?e.metrologia:'CALIBRACION'});
       }
+      if(hist)hist.push(Object.assign({equipoId:e.id},item));
       toast('Actividad guardada');renderFicha(byId(e.id)||e);
     }catch(err){btn.disabled=false;toast(errMsg(err))}
   };
@@ -418,10 +443,78 @@ function updateAuthUI(){
   if(openId&&$('#sheet').dataset.mode==='ficha'){const e=byId(openId);e&&renderFicha(e,true)}
 }
 
+/* ---------- tablero ---------- */
+let hist=null,histCargando=false;
+const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+async function cargarHist(){
+  if(hist||histCargando)return;histCargando=true;
+  try{const snap=await getDocs(collection(db,'historial'));const l=[];snap.forEach(d=>(d.data().eventos||[]).forEach(e=>l.push(Object.assign({equipoId:d.id},e))));hist=l}
+  catch(err){hist=[]}
+  histCargando=false;if(!$('#tab-panel').hidden)renderPanel();
+}
+function renderPanel(){
+  cargarHist();
+  const act=equipos.filter(e=>e.est!=='baja');
+  const req=act.filter(e=>e.est!=='nr');
+  const g=k=>act.filter(e=>e.est===k).length;
+  const alDia=req.filter(e=>e.est==='ok'||e.est==='por').length;
+  const pct=req.length?Math.round(alDia/req.length*100):0;
+  const kpi=(k,n,l)=>`<div class="kpi s-${k}"><strong>${n}</strong><span>${l}</span></div>`;
+
+  // por servicio
+  const porServ={};
+  req.forEach(e=>{const s=porServ[e.servicio]||(porServ[e.servicio]={ok:0,por:0,mal:0,t:0});s.t++;if(e.est==='ok')s.ok++;else if(e.est==='por')s.por++;else s.mal++});
+  const servRows=Object.entries(porServ).sort((a,b)=>b[1].mal-a[1].mal||b[1].t-a[1].t).map(([n,s])=>
+    `<div class="brow"><span class="lbl" title="${esc(n)}">${esc(n)}</span><span class="mini" style="text-align:right">${s.ok+s.por}/${s.t}</span></div>
+     <div class="btrack"><i class="ok" style="width:${s.ok/s.t*100}%"></i><i class="por" style="width:${s.por/s.t*100}%"></i><i class="mal" style="width:${s.mal/s.t*100}%"></i></div>`).join('');
+
+  // próximos 6 meses
+  const hoy=new Date();const meses=[];
+  for(let i=0;i<6;i++){const d=new Date(hoy.getFullYear(),hoy.getMonth()+i,1);meses.push({y:d.getFullYear(),m:d.getMonth(),n:0})}
+  req.forEach(e=>{if(!e.vence)return;const[y,m]=e.vence.split('-').map(Number);const f=meses.find(x=>x.y===y&&x.m===m-1);if(f)f.n++});
+  const maxM=Math.max(1,...meses.map(x=>x.n));
+  const barras=meses.map(x=>`<div><b>${x.n}</b><i style="height:${x.n/maxM*100}%"></i><span>${MESES[x.m]}</span></div>`).join('');
+
+  // actividades
+  let actHtml='<p class="mini">Cargando actividades…</p>';
+  if(hist){
+    const desde=plus(-365);
+    const ult=hist.filter(x=>x.fecha>=desde);
+    const tipos={};ult.forEach(x=>tipos[x.tipo]=(tipos[x.tipo]||0)+1);
+    const maxT=Math.max(1,...Object.values(tipos));
+    const este=hist.filter(x=>x.fecha>=TODAY.slice(0,8)+'01').length;
+    const filas=Object.entries(tipos).sort((a,b)=>b[1]-a[1]).map(([t,n])=>
+      `<div class="brow"><span class="lbl">${esc(t)}</span><span class="mini" style="text-align:right">${n}</span></div><div class="btrack"><i class="ok" style="width:${n/maxT*100}%"></i></div>`).join('');
+    const sinNada=req.filter(e=>!hist.some(h=>h.equipoId===e.id)).length;
+    actHtml=`<div class="kpis"><div class="kpi"><strong>${este}</strong><span>Actividades este mes</span></div><div class="kpi"><strong>${ult.length}</strong><span>En los últimos 12 meses</span></div></div>
+      ${filas||'<p class="mini">Aún no hay actividades registradas.</p>'}
+      <p class="mini" style="margin-top:10px">${sinNada} equipos que requieren control no tienen ninguna actividad registrada en la página.</p>`;
+  }
+
+  $('#panelBody').innerHTML=`
+    <h2>Calibraciones</h2>
+    <div class="panelcard">
+      <b>Cumplimiento: ${pct}%</b>
+      <div class="gauge"><i style="width:${pct}%"></i></div>
+      <span class="mini">${alDia} de ${req.length} equipos que requieren control metrológico están al día.</span>
+    </div>
+    <div class="kpis">
+      ${kpi('venc',g('venc'),'Vencidas')}
+      ${kpi('por',g('por'),'Vencen en 30 días')}
+      ${kpi('sin',g('sin'),'Sin calibración')}
+      ${kpi('ok',g('ok'),'Vigentes')}
+    </div>
+    <div class="panelcard"><b>Vencimientos por mes</b><div class="months">${barras}</div><span class="mini">Calibraciones que vencen en los próximos 6 meses.</span></div>
+    <div class="panelcard"><b>Cumplimiento por servicio</b><p class="mini" style="margin:2px 0 8px">Verde al día · amarillo por vencer · rojo vencida o sin calibración</p>${servRows||'<p class="mini">Sin datos.</p>'}</div>
+    <h2>Mantenimientos y actividades</h2>
+    <div class="panelcard">${actHtml}</div>
+    <p class="mini" style="margin-bottom:30px">Inventario: ${act.length} equipos activos · ${equipos.length-act.length} dados de baja · ${g('nr')} no requieren control metrológico.</p>`;
+}
+
 /* ---------- eventos ---------- */
 document.addEventListener('click',async ev=>{
   const it=ev.target.closest('.item');if(it){const e=byId(it.dataset.id);if(e)renderFicha(e);return}
-  const tb=ev.target.closest('.tabs button');if(tb){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b===tb));$('#tab-equipos').hidden=tb.dataset.tab!=='equipos';$('#tab-venc').hidden=tb.dataset.tab!=='venc';window.scrollTo(0,0);return}
+  const tb=ev.target.closest('.tabs button');if(tb){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b===tb));['equipos','venc','panel'].forEach(t=>$('#tab-'+t).hidden=tb.dataset.tab!==t);if(tb.dataset.tab==='panel')renderPanel();window.scrollTo(0,0);return}
   const tl=ev.target.closest('.tile');if(tl){vencFilter=tl.dataset.v;vencLimit=80;render();return}
   const a=ev.target.closest('[data-act]');if(!a)return;
   const e=byId(openId);
@@ -452,7 +545,7 @@ onSnapshot(collection(db,'servicios'),snap=>{
   const next={};snap.forEach(d=>next[d.id]=d.data());
   servicios=next;const first=!loaded;loaded=true;
   setStatus(snap.empty?(user?'':'Todavía no hay equipos cargados.'):'');
-  rebuild();updateAuthUI();
+  rebuild();updateAuthUI();if(!$('#tab-panel').hidden)renderPanel();
   if(first&&urlId){const e=byId(urlId);if(e)renderFicha(e);else toast('No se encontró ese equipo')}
 },err=>setStatus('No se pudo leer la base de datos ('+(err.code||'error')+'). Revisa el internet o las reglas de Firebase.',true));
 </script>
