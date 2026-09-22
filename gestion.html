@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hojas de vida · Equipos biomédicos CLM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F5F8; --panel:#FFFFFF; --ink:#18212E; --muted:#5A6576; --line:#DCE1E8;
+  --red:#B5121B; --red-soft:#FBE9EA; --amber:#9A6200; --amber-soft:#FFF3DC;
+  --green:#1D7A4B; --green-soft:#E3F4EA; --gray-soft:#EDEFF3;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12161C; --panel:#1B2129; --ink:#E8ECF1; --muted:#9AA5B4; --line:#2C3440;
+  --red:#FF6B6F; --red-soft:#3A1F22; --amber:#F2B44C; --amber-soft:#382C17;
+  --green:#5CCB8F; --green-soft:#17301F; --gray-soft:#242B35;}}
+:root[data-theme="dark"]{
+  --bg:#12161C; --panel:#1B2129; --ink:#E8ECF1; --muted:#9AA5B4; --line:#2C3440;
+  --red:#FF6B6F; --red-soft:#3A1F22; --amber:#F2B44C; --amber-soft:#382C17;
+  --green:#5CCB8F; --green-soft:#17301F; --gray-soft:#242B35;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 "Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px 96px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--red);color:#fff}
+header.top .in{max-width:860px;margin:0 auto;padding:14px 16px 12px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+header.top h1{margin:0;font-size:1.3rem;line-height:1.15}
+header.top small{display:block;opacity:.85;font-size:.85rem}
+.icon-btn{background:rgba(255,255,255,.16);border:0;color:#fff;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer}
+.tabs{display:flex;gap:4px;max-width:860px;margin:0 auto;padding:0 12px}
+.tabs button{flex:1;background:none;border:0;color:#fff;opacity:.75;padding:10px 4px 11px;font-weight:700;border-bottom:3px solid transparent;cursor:pointer}
+.tabs button[aria-selected="true"]{opacity:1;border-bottom-color:#fff}
+.status{margin:14px 0;padding:10px 12px;border-radius:10px;background:var(--gray-soft);color:var(--muted);font-size:.9rem}
+.status.err{background:var(--red-soft);color:var(--red)}
+.search{display:flex;flex-direction:column;gap:8px;margin:16px 0 10px}
+.search input,.search select,.field input,.field select,.field textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel)}
+.search .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid var(--red);outline-offset:1px}
+.count{color:var(--muted);font-size:.9rem;margin:6px 2px 8px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.list{list-style:none;margin:0;padding:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.item{display:grid;grid-template-columns:6px 1fr auto;gap:0 12px;align-items:center;padding:12px 12px 12px 0;border-top:1px solid var(--line);cursor:pointer;background:none;width:100%;text-align:left;border-left:0;border-right:0;border-bottom:0}
+.list li:first-child .item{border-top:0}
+.item:hover{background:var(--gray-soft)}
+.bar{align-self:stretch;border-radius:0 4px 4px 0}
+.item b{display:block;font-size:1rem}
+.item .sub{color:var(--muted);font-size:.87rem}
+.chip{font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.s-venc .bar,.s-sin .bar{background:var(--red)} .s-por .bar{background:var(--amber)} .s-ok .bar{background:var(--green)} .s-nr .bar{background:var(--line)} .s-baja .bar{background:var(--muted)}
+.chip.s-venc,.chip.s-sin{background:var(--red-soft);color:var(--red)} .chip.s-por{background:var(--amber-soft);color:var(--amber)}
+.chip.s-ok{background:var(--green-soft);color:var(--green)} .chip.s-nr,.chip.s-baja{background:var(--gray-soft);color:var(--muted)}
+.more{display:block;margin:12px auto;padding:10px 18px;border:1.5px solid var(--line);background:var(--panel);border-radius:10px;cursor:pointer;font-weight:700}
+.board{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:16px 0}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:left;cursor:pointer;border-top:5px solid var(--line)}
+.tile strong{display:block;font-size:2rem;line-height:1.05;font-variant-numeric:tabular-nums}
+.tile span{color:var(--muted);font-size:.9rem}
+.tile.s-venc,.tile.s-sin{border-top-color:var(--red)} .tile.s-por{border-top-color:var(--amber)} .tile.s-ok{border-top-color:var(--green)}
+.tile[aria-pressed="true"]{outline:2px solid var(--ink)}
+h2{font-size:1.1rem;margin:20px 0 8px}
+.fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--red);color:#fff;border:0;border-radius:14px;padding:14px 18px;font-weight:700;box-shadow:0 6px 18px rgba(120,10,15,.35);cursor:pointer;z-index:6}
+/* hoja */
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(10,14,20,.45);display:none}
+.sheet.open{display:block}
+.sheet .card{position:absolute;inset:0;background:var(--bg);overflow:auto;padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+@media (min-width:760px){.sheet .card{inset:4vh auto 4vh 50%;transform:translateX(-50%);width:min(760px,94vw);border-radius:16px}}
+.sheet-head{position:sticky;top:0;background:var(--red);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;z-index:2}
+.sheet-head h3{margin:0;font-size:1.1rem;flex:1;line-height:1.2}
+.sheet-body{padding:16px}
+.dl{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:0}
+.dl div{background:var(--panel);padding:10px 12px}
+.dl dt{color:var(--muted);font-size:.8rem} .dl dd{margin:2px 0 0;font-weight:700;word-break:break-word}
+.dl .wide{grid-column:1/-1}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.btn{border:1.5px solid var(--line);background:var(--panel);border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+.btn.pri{background:var(--red);border-color:var(--red);color:#fff}
+.btn:disabled{opacity:.5;cursor:default}
+.timeline{list-style:none;margin:0;padding:0;border-left:2px solid var(--line);margin-left:6px}
+.timeline li{position:relative;padding:0 0 14px 16px}
+.timeline li::before{content:"";position:absolute;left:-7px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--panel);border:2px solid var(--red)}
+.timeline .when{color:var(--muted);font-size:.85rem}
+.empty{color:var(--muted);background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:14px}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:.85rem;color:var(--muted);font-weight:700}
+.field.wide{grid-column:1/-1}
+.files a{color:var(--red);font-weight:700}
+.files li{margin:4px 0}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:40;font-weight:700;display:none;max-width:90vw}
+@media (max-width:480px){.dl,.form{grid-template-columns:1fr}.dl .wide,.field.wide{grid-column:auto}}
+@media (prefers-reduced-motion:no-preference){.sheet.open .card{animation:up .18s ease-out}@keyframes up{from{transform:translateY(16px);opacity:.6}}}
+@media (min-width:760px){@media (prefers-reduced-motion:no-preference){.sheet.open .card{animation:none}}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="in">
+    <div><h1>Hojas de vida</h1><small id="modo">Equipos biomédicos · Clínica La Merced</small></div>
+    <div style="display:flex;gap:6px">
+      <button class="icon-btn" id="exportBtn">Exportar</button>
+      <button class="icon-btn" id="loginBtn">Entrar</button>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="equipos">Equipos</button>
+    <button role="tab" aria-selected="false" data-tab="venc">Vencimientos</button>
+  </nav>
+</header>
+
+<main class="wrap">
+  <div class="status" id="status">Cargando inventario…</div>
+  <div id="seedBox" hidden class="status"><p style="margin:0 0 10px">La base de datos está vacía. Carga los equipos del inventario de Excel para empezar.</p><button class="btn pri" id="seedBtn">Cargar inventario inicial</button></div>
+
+  <section id="tab-equipos">
+    <div class="search">
+      <input id="q" type="search" placeholder="Buscar por equipo, serie, inventario, marca…" autocomplete="off">
+      <div class="row">
+        <select id="fServ"><option value="">Todos los servicios</option></select>
+        <select id="fEst">
+          <option value="">Todos los estados</option>
+          <option value="venc">Calibración vencida</option>
+          <option value="por">Vence en 30 días</option>
+          <option value="sin">Sin calibración</option>
+          <option value="ok">Vigente</option>
+          <option value="nr">No requiere</option>
+          <option value="baja">Dados de baja</option>
+        </select>
+      </div>
+    </div>
+    <div class="count" id="count"></div>
+    <ul class="list" id="list"></ul>
+    <button class="more" id="moreBtn" hidden>Mostrar más</button>
+  </section>
+
+  <section id="tab-venc" hidden>
+    <div class="board" id="board"></div>
+    <h2 id="vencTitle"></h2>
+    <ul class="list" id="vencList"></ul>
+    <button class="more" id="vencMore" hidden>Mostrar más</button>
+  </section>
+</main>
+
+<button class="fab" id="addBtn" hidden>+ Nuevo equipo</button>
+
+<div class="sheet" id="sheet" aria-hidden="true">
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head"><h3 id="sheetTitle"></h3><button class="icon-btn" id="closeBtn">Cerrar</button></div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, doc, onSnapshot, getDoc, setDoc, updateDoc, deleteField, writeBatch, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAC-a5UX-7RYy5ZmZ2vUemR9RiCP_Ylh1o",
+  authDomain: "equipos-biomedicos-clm.firebaseapp.com",
+  projectId: "equipos-biomedicos-clm",
+  storageBucket: "equipos-biomedicos-clm.firebasestorage.app",
+  messagingSenderId: "401710015665",
+  appId: "1:401710015665:web:26053a68a98fe5c9916e90"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const TODAY=iso(new Date());
+const plus=n=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
+const in30=plus(30),in60=plus(60);
+function addMonths(s,m){if(!s)return'';const[y,mo,da]=s.split('-').map(Number);return iso(new Date(y,mo-1+Number(m),da))}
+function fmt(s){if(!s)return'—';const[y,m,d]=s.split('-');return d+'/'+m+'/'+y}
+function slug(t){return (t||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'sin-servicio'}
+const EST={venc:'Vencida',por:'Por vencer',sin:'Sin calibración',ok:'Vigente',nr:'No requiere',baja:'De baja'};
+function estado(e){
+  if(e.baja)return'baja';
+  if((e.metrologia||'').toUpperCase()==='NO REQUIERE'||!e.metrologia)return'nr';
+  if(!e.vence)return'sin';
+  if(e.vence<TODAY)return'venc';
+  if(e.vence<=in30)return'por';
+  return'ok';
+}
+const TIPOS=['Calibración','Mantenimiento preventivo','Mantenimiento correctivo','Falla reportada','Traslado','Otro'];
+
+let user=null,servicios={},equipos=[],loaded=false;
+let limit=80,vencFilter='venc',vencLimit=80,openId=null;
+const urlId=new URLSearchParams(location.search).get('id');
+
+function toast(t){const el=$('#toast');el.textContent=t;el.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>el.style.display='none',2800)}
+function setStatus(t,err){const s=$('#status');if(!t){s.hidden=true;return}s.hidden=false;s.textContent=t;s.classList.toggle('err',!!err)}
+function errMsg(err){const c=(err&&err.code)||'';if(c.includes('permission'))return'No tienes permiso para editar. Entra con tu usuario.';if(c.includes('unavailable'))return'Sin conexión. Revisa el internet e intenta de nuevo.';return'No se guardó ('+(c||'error')+'). Intenta de nuevo.'}
+
+/* ---------- datos ---------- */
+function rebuild(){
+  const list=[];
+  for(const[sid,sv] of Object.entries(servicios))for(const[id,e] of Object.entries(sv.equipos||{}))list.push(Object.assign({},e,{id,sid,servicio:sv.nombre}));
+  list.forEach(e=>{e.est=estado(e);e.txt=[e.inv,e.equipo,e.marca,e.modelo,e.serie,e.servicio,e.ubicacion,e.id].join(' ').toLowerCase()});
+  list.sort((a,b)=>(a.orden||9e15)-(b.orden||9e15));
+  equipos=list;
+  const sel=$('#fServ'),cur=sel.value;
+  sel.innerHTML='<option value="">Todos los servicios</option>'+Object.entries(servicios).sort((a,b)=>a[1].nombre.localeCompare(b[1].nombre)).map(([id,s])=>`<option value="${esc(id)}">${esc(s.nombre)} (${Object.keys(s.equipos||{}).length})</option>`).join('');
+  sel.value=cur;
+  render();
+  if(openId&&$('#sheet').dataset.mode==='ficha'){const e=byId(openId);if(e)renderFicha(e,true)}
+}
+const byId=id=>equipos.find(e=>e.id===id);
+const ref=sid=>doc(db,'servicios',sid);
+async function patchEquipo(e,patch){await setDoc(ref(e.sid),{equipos:{[e.id]:patch}},{merge:true})}
+
+function row(e){
+  const sub=[e.marca,e.modelo].filter(Boolean).join(' ')+(e.serie?' · Serie '+e.serie:'');
+  const where=[e.servicio,e.ubicacion].filter(Boolean).join(' · ');
+  const right=['ok','por','venc'].includes(e.est)?`${EST[e.est]}<br><span style="font-weight:400">${fmt(e.vence)}</span>`:EST[e.est];
+  return `<li><button class="item s-${e.est}" data-id="${esc(e.id)}"><span class="bar"></span><span><b>${esc(e.equipo||'Equipo sin nombre')}</b><span class="sub">${esc(sub)}</span><br><span class="sub">${esc(e.inv&&e.inv!=='N/P'?e.inv+' · ':'')}${esc(where)}</span></span><span class="chip s-${e.est}" style="text-align:right">${right}</span></button></li>`;
+}
+function render(){
+  const q=$('#q').value.trim().toLowerCase(),fs=$('#fServ').value,fe=$('#fEst').value;
+  const words=q.split(/\s+/).filter(Boolean);
+  const f=equipos.filter(e=>(!fs||e.sid===fs)&&(fe?e.est===fe:e.est!=='baja')&&words.every(w=>e.txt.includes(w)));
+  $('#count').innerHTML=`<span>${f.length} equipo${f.length===1?'':'s'}</span>`;
+  $('#list').innerHTML=f.length?f.slice(0,limit).map(row).join(''):'<li class="empty" style="border:0">No hay equipos con esa búsqueda. Prueba con otra palabra o quita los filtros.</li>';
+  $('#moreBtn').hidden=f.length<=limit;
+  const act=equipos.filter(e=>e.est!=='baja');
+  const g=k=>act.filter(e=>e.est===k);
+  const soon=act.filter(e=>e.vence&&e.vence>=TODAY&&e.vence<=in60&&e.est!=='nr');
+  const tiles=[['venc',g('venc').length,'Vencidas'],['por',g('por').length,'Vencen en 30 días'],['p60',soon.length,'Vencen en 60 días'],['sin',g('sin').length,'Requieren y no tienen calibración']];
+  $('#board').innerHTML=tiles.map(([k,n,l])=>`<button class="tile s-${k==='p60'?'por':k}" data-v="${k}" aria-pressed="${vencFilter===k}"><strong>${n}</strong><span>${l}</span></button>`).join('');
+  let vl=vencFilter==='p60'?soon:g(vencFilter);
+  vl=vl.slice().sort((a,b)=>(a.vence||'9').localeCompare(b.vence||'9')||a.servicio.localeCompare(b.servicio));
+  $('#vencTitle').textContent=tiles.find(t=>t[0]===vencFilter)[2]+' ('+vl.length+')';
+  $('#vencList').innerHTML=vl.length?vl.slice(0,vencLimit).map(row).join(''):'<li class="empty" style="border:0">Nada pendiente aquí.</li>';
+  $('#vencMore').hidden=vl.length<=vencLimit;
+}
+
+/* ---------- hojas ---------- */
+function openSheet(title,html,mode){$('#sheetTitle').textContent=title;$('#sheetBody').innerHTML=html;const s=$('#sheet');s.dataset.mode=mode;s.classList.add('open');s.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';$('.sheet .card').scrollTop=0}
+function closeSheet(){const s=$('#sheet');s.classList.remove('open');s.setAttribute('aria-hidden','true');document.body.style.overflow='';openId=null;if(location.search)history.replaceState(null,'',location.pathname)}
+
+function renderFicha(e,keep){
+  openId=e.id;
+  const card=$('.sheet .card'),sc=card.scrollTop;
+  const d=(l,v,w)=>`<div class="${w?'wide':''}"><dt>${l}</dt><dd>${esc(v||'—')}</dd></div>`;
+  const docs=(e.adjuntos||[]).map((a,i)=>`<li><a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.nombre)}</a> <span style="color:var(--muted)">· ${fmt(a.fecha)}</span>${user?` <button class="btn" style="padding:2px 8px;font-size:.8rem" data-act="quitarDoc" data-i="${i}">Quitar</button>`:''}</li>`).join('');
+  const html=`
+    <p style="margin:0 0 12px"><span class="chip s-${e.est}">${EST[e.est]}${e.vence&&e.est!=='nr'?' · vence '+fmt(e.vence):''}</span></p>
+    <dl class="dl">
+      ${d('Código en la app',e.id.toUpperCase())}${d('Inventario',e.inv)}
+      ${d('Serie',e.serie)}${d('Marca',e.marca)}
+      ${d('Modelo',e.modelo)}${d('Servicio',e.servicio)}
+      ${d('Ubicación',e.ubicacion)}${d('Control metrológico',e.metrologia)}
+      ${d('Prioridad',e.prioridad)}${d('Estado',e.baja?'Dado de baja':'Activo')}
+      ${d('Última calibración',fmt(e.ultimaCal))}${d('Próximo vencimiento',fmt(e.vence))}
+      ${d('Valor estimado calibración',e.valor?'$ '+Number(e.valor).toLocaleString('es-CO'):'',true)}
+      ${d('Observaciones',e.obs,true)}
+    </dl>
+    ${user?`<div class="actions">
+      <button class="btn pri" data-act="evento">Registrar calibración o actividad</button>
+      <button class="btn" data-act="editar">Editar datos</button>
+      <button class="btn" data-act="doc">Agregar documento</button>
+    </div>`:''}
+    <h2>Documentos</h2>
+    ${docs?`<ul class="files" style="padding-left:18px">${docs}</ul>`:`<p class="empty">Sin documentos.${user?' Usa "Agregar documento" para pegar el enlace de la hoja de vida o del certificado de calibración.':''}</p>`}
+    <h2>Historial</h2>
+    <div id="hist"><p class="empty">Cargando historial…</p></div>
+    <div class="actions" style="margin-top:24px">
+      <button class="btn" data-act="enlace">Copiar enlace del equipo</button>
+      ${user?`<button class="btn" data-act="baja">${e.baja?'Reactivar equipo':'Dar de baja'}</button>`:''}
+    </div>`;
+  if(!keep||$('#sheet').dataset.mode!=='ficha')openSheet(e.equipo||'Equipo',html,'ficha');
+  else{$('#sheetTitle').textContent=e.equipo||'Equipo';$('#sheetBody').innerHTML=html;card.scrollTop=sc}
+  loadHist(e.id);
+}
+async function loadHist(id){
+  let ev=[];
+  try{const s=await getDoc(doc(db,'historial',id));if(s.exists())ev=(s.data().eventos||[]).slice()}catch(err){}
+  if(openId!==id||!$('#hist'))return;
+  ev.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  $('#hist').innerHTML=ev.length?`<ul class="timeline">${ev.map(x=>`<li><b>${esc(x.tipo)}</b> <span class="when">· ${fmt(x.fecha)}${x.quien?' · '+esc(x.quien):''}</span><div>${esc(x.detalle||'')}</div></li>`).join('')}</ul>`:`<p class="empty">Aún no hay actividades registradas.</p>`;
+}
+
+function eventoForm(e){
+  const html=`<form id="evForm" class="form">
+    <div class="field"><label for="evTipo">Tipo de actividad</label><select id="evTipo">${TIPOS.map(t=>`<option>${t}</option>`).join('')}</select></div>
+    <div class="field"><label for="evFecha">Fecha</label><input id="evFecha" type="date" value="${TODAY}" required></div>
+    <div class="field wide" id="calBox"><label for="evMeses">Próxima calibración en (meses)</label><input id="evMeses" type="number" min="1" max="60" value="12"></div>
+    <div class="field wide"><label for="evQuien">Realizado por</label><input id="evQuien" placeholder="Técnico, empresa o proveedor"></div>
+    <div class="field wide"><label for="evDet">Detalle</label><textarea id="evDet" rows="4" placeholder="Resultado, número de certificado, repuestos…"></textarea></div>
+    <div class="actions field wide"><button class="btn pri" type="submit">Guardar actividad</button><button class="btn" type="button" data-act="volver">Volver</button></div>
+  </form>`;
+  openSheet('Actividad · '+(e.equipo||''),html,'form');
+  const t=$('#evTipo');t.onchange=()=>$('#calBox').hidden=t.value!=='Calibración';
+  $('#evForm').onsubmit=async ev=>{
+    ev.preventDefault();const btn=$('#evForm button[type=submit]');btn.disabled=true;
+    const item={tipo:t.value,fecha:$('#evFecha').value,quien:$('#evQuien').value.trim(),detalle:$('#evDet').value.trim(),creado:new Date().toISOString(),por:user.email};
+    try{
+      await setDoc(doc(db,'historial',e.id),{eventos:arrayUnion(item)},{merge:true});
+      if(item.tipo==='Calibración'&&item.fecha){
+        await patchEquipo(e,{ultimaCal:item.fecha,vence:addMonths(item.fecha,$('#evMeses').value||12),metrologia:(e.metrologia&&e.metrologia!=='NO REQUIERE')?e.metrologia:'CALIBRACION'});
+      }
+      toast('Actividad guardada');renderFicha(byId(e.id)||e);
+    }catch(err){btn.disabled=false;toast(errMsg(err))}
+  };
+}
+
+function docForm(e){
+  const html=`<form id="docForm" class="form">
+    <div class="field wide"><label for="dNom">Nombre del documento</label><input id="dNom" placeholder="Ej: Hoja de vida, Certificado calibración 2026" required></div>
+    <div class="field wide"><label for="dUrl">Enlace (Google Drive, GitHub…)</label><input id="dUrl" type="url" placeholder="https://" required></div>
+    <p class="field wide" style="color:var(--muted);margin:0;font-size:.9rem">En Drive: abre el PDF, toca Compartir, cambia el acceso a "Cualquier persona con el enlace" y copia el enlace.</p>
+    <div class="actions field wide"><button class="btn pri" type="submit">Guardar documento</button><button class="btn" type="button" data-act="volver">Volver</button></div>
+  </form>`;
+  openSheet('Documento · '+(e.equipo||''),html,'form');
+  $('#docForm').onsubmit=async ev=>{
+    ev.preventDefault();const btn=$('#docForm button[type=submit]');btn.disabled=true;
+    const list=(e.adjuntos||[]).slice();list.push({nombre:$('#dNom').value.trim(),url:$('#dUrl').value.trim(),fecha:TODAY});
+    try{await setDoc(ref(e.sid),{equipos:{[e.id]:{adjuntos:list}}},{merge:true});toast('Documento guardado');renderFicha(byId(e.id)||e)}
+    catch(err){btn.disabled=false;toast(errMsg(err))}
+  };
+}
+
+function editForm(e,isNew){
+  const sv=Object.entries(servicios).sort((a,b)=>a[1].nombre.localeCompare(b[1].nombre));
+  const f=(id,l,v,type='text',w)=>`<div class="field${w?' wide':''}"><label for="${id}">${l}</label><input id="${id}" type="${type}" value="${esc(v??'')}"></div>`;
+  const html=`<form id="edForm" class="form">
+    ${f('eEquipo','Equipo',e.equipo,'text',true)}
+    ${f('eInv','Inventario',e.inv)}${f('eSerie','Serie',e.serie)}
+    ${f('eMarca','Marca',e.marca)}${f('eModelo','Modelo',e.modelo)}
+    <div class="field"><label for="eServ">Servicio</label><select id="eServ">${sv.map(([id,s])=>`<option value="${esc(id)}" ${id===e.sid?'selected':''}>${esc(s.nombre)}</option>`).join('')}<option value="__nuevo">Otro servicio…</option></select></div>
+    ${f('eUbic','Ubicación',e.ubicacion)}
+    <div class="field wide" id="newServBox" hidden><label for="eServNuevo">Nombre del servicio nuevo</label><input id="eServNuevo"></div>
+    <div class="field"><label for="eMet">Control metrológico</label><select id="eMet">${['CALIBRACION','NO REQUIERE','CONTROL DE CALIDAD','VALIDACION'].map(o=>`<option ${o===(e.metrologia||'NO REQUIERE')?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="field"><label for="ePri">Prioridad</label><select id="ePri">${['','ALTA','MEDIA','BAJA'].map(o=>`<option value="${o}" ${o===(e.prioridad||'')?'selected':''}>${o||'—'}</option>`).join('')}</select></div>
+    ${f('eUlt','Última calibración',e.ultimaCal,'date')}${f('eVence','Próximo vencimiento',e.vence,'date')}
+    ${f('eValor','Valor estimado calibración',e.valor,'number',true)}
+    <div class="field wide"><label for="eObs">Observaciones</label><textarea id="eObs" rows="3">${esc(e.obs||'')}</textarea></div>
+    <div class="actions field wide"><button class="btn pri" type="submit">${isNew?'Crear equipo':'Guardar cambios'}</button><button class="btn" type="button" data-act="${isNew?'cerrar':'volver'}">Cancelar</button></div>
+  </form>`;
+  openSheet(isNew?'Nuevo equipo':'Editar · '+(e.equipo||''),html,'form');
+  const es=$('#eServ');es.onchange=()=>$('#newServBox').hidden=es.value!=='__nuevo';
+  if(isNew&&$('#fServ').value)es.value=$('#fServ').value;
+  $('#edForm').onsubmit=async ev=>{
+    ev.preventDefault();const btn=$('#edForm button[type=submit]');
+    let sid=es.value,nombre=servicios[sid]?.nombre;
+    if(sid==='__nuevo'){nombre=$('#eServNuevo').value.trim().toUpperCase();if(!nombre){toast('Escribe el nombre del servicio');return}sid=slug(nombre)}
+    const data={equipo:$('#eEquipo').value.trim().toUpperCase(),inv:$('#eInv').value.trim(),serie:$('#eSerie').value.trim(),marca:$('#eMarca').value.trim().toUpperCase(),modelo:$('#eModelo').value.trim(),ubicacion:$('#eUbic').value.trim().toUpperCase(),metrologia:$('#eMet').value,prioridad:$('#ePri').value,ultimaCal:$('#eUlt').value,vence:$('#eVence').value,valor:$('#eValor').value?Number($('#eValor').value):null,obs:$('#eObs').value.trim()};
+    if(!data.equipo){toast('Escribe el nombre del equipo');return}
+    if(data.ultimaCal&&!data.vence&&data.metrologia!=='NO REQUIERE')data.vence=addMonths(data.ultimaCal,12);
+    btn.disabled=true;
+    try{
+      if(isNew){
+        const id='n'+Date.now().toString(36);
+        await setDoc(ref(sid),{nombre,equipos:{[id]:Object.assign(data,{orden:Date.now(),adjuntos:[]})}},{merge:true});
+        toast('Equipo creado');openId=id;setTimeout(()=>{const n=byId(id);n?renderFicha(n):closeSheet()},300);
+      }else if(sid!==e.sid){
+        const full=Object.assign({},servicios[e.sid].equipos[e.id],data);
+        const b=writeBatch(db);
+        b.set(ref(sid),{nombre,equipos:{[e.id]:full}},{merge:true});
+        b.update(ref(e.sid),{['equipos.'+e.id]:deleteField()});
+        await b.commit();
+        toast('Cambios guardados');setTimeout(()=>{const n=byId(e.id);n?renderFicha(n):closeSheet()},300);
+      }else{
+        await patchEquipo(e,data);toast('Cambios guardados');renderFicha(byId(e.id)||e);
+      }
+    }catch(err){btn.disabled=false;toast(errMsg(err))}
+  };
+}
+
+function loginForm(){
+  const html=`<form id="lgForm" class="form">
+    <p class="field wide" style="margin:0;color:var(--muted)">Para ver no necesitas entrar. Entra solo si vas a registrar calibraciones o editar equipos.</p>
+    <div class="field wide"><label for="lgMail">Correo</label><input id="lgMail" type="email" autocomplete="username" required></div>
+    <div class="field wide"><label for="lgPass">Contraseña</label><input id="lgPass" type="password" autocomplete="current-password" required></div>
+    <div class="actions field wide"><button class="btn pri" type="submit">Entrar</button><button class="btn" type="button" data-act="cerrar">Cancelar</button></div>
+  </form>`;
+  openSheet('Entrar para editar',html,'form');
+  $('#lgForm').onsubmit=async ev=>{
+    ev.preventDefault();const btn=$('#lgForm button[type=submit]');btn.disabled=true;
+    try{await signInWithEmailAndPassword(auth,$('#lgMail').value.trim(),$('#lgPass').value);closeSheet();toast('Sesión iniciada')}
+    catch(err){btn.disabled=false;const c=err.code||'';toast(c.includes('invalid')||c.includes('wrong')||c.includes('user-not-found')?'Correo o contraseña incorrectos':c.includes('unauthorized-domain')?'Falta autorizar este dominio en Firebase':'No se pudo entrar ('+c+')')}
+  };
+}
+
+function exportar(){
+  const cols=[['id','CODIGO APP'],['inv','INVENTARIO'],['equipo','EQUIPO'],['marca','MARCA'],['modelo','MODELO'],['serie','SERIE'],['servicio','SERVICIO'],['ubicacion','UBICACION'],['metrologia','CONTROL METROLOGICO'],['prioridad','PRIORIDAD'],['ultimaCal','FECHA DE REALIZACION'],['vence','FECHA DE VENCIMIENTO'],['valor','VALOR ESTIMADO'],['estado','ESTADO'],['obs','OBSERVACIONES']];
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const lines=[cols.map(c=>q(c[1])).join(';')].concat(equipos.map(e=>cols.map(([k])=>q(k==='estado'?EST[e.est]:k==='id'?e.id.toUpperCase():(k==='ultimaCal'||k==='vence')?(e[k]?fmt(e[k]):''):e[k])).join(';')));
+  const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='inventario-equipos-'+TODAY+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+
+async function seed(){
+  if(!confirm('¿Cargar los 963 equipos del inventario inicial?'))return;
+  const btn=$('#seedBtn');btn.disabled=true;btn.textContent='Cargando…';
+  try{
+    const r=await fetch('inventario-inicial.json',{cache:'no-store'});
+    if(!r.ok)throw{code:'no se encontró inventario-inicial.json'};
+    const data=await r.json();const b=writeBatch(db);
+    for(const[sid,sv] of Object.entries(data.servicios))b.set(ref(sid),sv);
+    await b.commit();toast('Inventario cargado');
+  }catch(err){btn.disabled=false;btn.textContent='Cargar inventario inicial';toast(errMsg(err))}
+}
+
+function updateAuthUI(){
+  $('#loginBtn').textContent=user?'Salir':'Entrar';
+  $('#modo').textContent=user?'Editando como '+user.email:'Equipos biomédicos · Clínica La Merced';
+  $('#addBtn').hidden=!user;
+  $('#seedBox').hidden=!(user&&loaded&&equipos.length===0);
+  if(openId&&$('#sheet').dataset.mode==='ficha'){const e=byId(openId);e&&renderFicha(e,true)}
+}
+
+/* ---------- eventos ---------- */
+document.addEventListener('click',async ev=>{
+  const it=ev.target.closest('.item');if(it){const e=byId(it.dataset.id);if(e)renderFicha(e);return}
+  const tb=ev.target.closest('.tabs button');if(tb){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b===tb));$('#tab-equipos').hidden=tb.dataset.tab!=='equipos';$('#tab-venc').hidden=tb.dataset.tab!=='venc';window.scrollTo(0,0);return}
+  const tl=ev.target.closest('.tile');if(tl){vencFilter=tl.dataset.v;vencLimit=80;render();return}
+  const a=ev.target.closest('[data-act]');if(!a)return;
+  const e=byId(openId);
+  switch(a.dataset.act){
+    case'evento':e&&eventoForm(e);break;
+    case'editar':e&&editForm(e,false);break;
+    case'doc':e&&docForm(e);break;
+    case'volver':e?renderFicha(e):closeSheet();break;
+    case'cerrar':closeSheet();break;
+    case'quitarDoc':if(e&&confirm('¿Quitar este documento de la ficha?')){const l=(e.adjuntos||[]).slice();l.splice(Number(a.dataset.i),1);setDoc(ref(e.sid),{equipos:{[e.id]:{adjuntos:l}}},{merge:true}).then(()=>toast('Documento quitado')).catch(err=>toast(errMsg(err)))}break;
+    case'enlace':if(e){const u=location.origin+location.pathname+'?id='+e.id;try{await navigator.clipboard.writeText(u);toast('Enlace copiado')}catch(_){prompt('Copia este enlace:',u)}}break;
+    case'baja':if(e&&confirm(e.baja?'¿Reactivar este equipo?':'¿Dar de baja este equipo? Seguirá guardado y lo verás en el filtro "Dados de baja".'))patchEquipo(e,{baja:!e.baja}).then(()=>toast(e.baja?'Equipo reactivado':'Equipo dado de baja')).catch(err=>toast(errMsg(err)));break;
+  }
+});
+$('#closeBtn').onclick=closeSheet;
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&$('#sheet').classList.contains('open'))closeSheet()});
+let qt;$('#q').addEventListener('input',()=>{clearTimeout(qt);qt=setTimeout(()=>{limit=80;render()},150)});
+$('#fServ').onchange=$('#fEst').onchange=()=>{limit=80;render()};
+$('#moreBtn').onclick=()=>{limit+=150;render()};
+$('#vencMore').onclick=()=>{vencLimit+=150;render()};
+$('#addBtn').onclick=()=>{openId=null;editForm({},true)};
+$('#exportBtn').onclick=exportar;
+$('#seedBtn').onclick=seed;
+$('#loginBtn').onclick=()=>user?signOut(auth).then(()=>toast('Sesión cerrada')):loginForm();
+
+onAuthStateChanged(auth,u=>{user=u;updateAuthUI()});
+onSnapshot(collection(db,'servicios'),snap=>{
+  const next={};snap.forEach(d=>next[d.id]=d.data());
+  servicios=next;const first=!loaded;loaded=true;
+  setStatus(snap.empty?(user?'':'Todavía no hay equipos cargados.'):'');
+  rebuild();updateAuthUI();
+  if(first&&urlId){const e=byId(urlId);if(e)renderFicha(e);else toast('No se encontró ese equipo')}
+},err=>setStatus('No se pudo leer la base de datos ('+(err.code||'error')+'). Revisa el internet o las reglas de Firebase.',true));
+</script>
+</body>
+</html>
