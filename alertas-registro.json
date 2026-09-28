@@ -9,5 +9,14 @@
   "calVencidas": 2,
   "calPorVencer": 52,
   "cumplimiento": null
+ },
+ {
+  "fecha": "2026-09-27",
+  "hora": "22:01",
+  "destinatarios": 2,
+  "atrasados": 207,
+  "esteMes": 130,
+  "proximoMes": 144,
+  "cumplimiento": 77
  }
 ]
