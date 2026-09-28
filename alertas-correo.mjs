@@ -1,6 +1,6 @@
 // Correo semanal de alertas de mantenimiento · Clínica La Merced
 // Lo ejecuta GitHub cada lunes (archivo .github/workflows/alertas.yml).
-// Lee los datos de Firebase, arma el resumen y lo envía por Gmail.
+// Lee el cronograma de Firebase, arma el resumen de mantenimientos y lo envía por Gmail.
 
 import fs from 'node:fs';
 import nodemailer from 'nodemailer';
@@ -16,7 +16,6 @@ const MESL = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const HOY = new Date(), TODAY = iso(HOY), NOW = { y: HOY.getFullYear(), m: HOY.getMonth() + 1 };
-const en30 = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return iso(d); })();
 const fmt = s => { if (!s) return '—'; const [y, m, d] = String(s).split('-'); return d ? d + '/' + m + '/' + y : s; };
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const Cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
@@ -74,72 +73,50 @@ function calcularPreventivo(prevDocs) {
   atr.sort(orden); mes.sort(orden); prox.sort(orden);
   return { anio, atr, mes, prox, prog, hech, cumplimiento: prog ? Math.round(hech / prog * 100) : null, atraso: m => (NOW.y - anio) * 12 + NOW.m - m };
 }
-function calcularCalibraciones(servicios) {
-  const venc = [], por = [];
-  for (const sv of Object.values(servicios)) for (const e of Object.values(sv.equipos || {})) {
-    if (e.baja || !e.metrologia || String(e.metrologia).toUpperCase() === 'NO REQUIERE' || !e.vence) continue;
-    const x = Object.assign({ servicio: sv.nombre }, e);
-    if (e.vence < TODAY) venc.push(x); else if (e.vence <= en30) por.push(x);
-  }
-  const o = (a, b) => a.vence.localeCompare(b.vence);
-  return { venc: venc.sort(o), por: por.sort(o) };
-}
-
-/* ---------- armar el correo ---------- */
-const MAX = 80;
-const th = t => `<th style="text-align:left;padding:6px 8px;font-size:12px;color:#566C6E;border-bottom:1px solid #D6E1E1">${t}</th>`;
-const td = (t, x = '') => `<td style="padding:6px 8px;font-size:13px;border-bottom:1px solid #EEF3F3;vertical-align:top;${x}">${t}</td>`;
-function tablaPrev(lista, tipo, P) {
-  if (!lista.length) return '<p style="color:#566C6E;font-size:14px;margin:4px 0 0">Nada en esta lista.</p>';
-  let serv = null, filas = '';
-  for (const { it, m } of lista.slice(0, MAX)) {
-    if (it.servicio !== serv) { serv = it.servicio; filas += `<tr><td colspan="4" style="padding:10px 8px 4px;font-weight:bold;font-size:13px;color:#00675F">${esc(serv)}</td></tr>`; }
-    const n = P.atraso(m);
-    filas += `<tr>${td(`<b>${esc(it.eq)}</b><br><span style="color:#566C6E">${esc([it.marca, it.modelo].filter(Boolean).join(' '))}</span>`)}${td(esc(it.serie || '—'))}${td(esc([it.area && it.area !== it.servicio ? it.area : '', it.ubic].filter(Boolean).join(' · ')))}${td(tipo === 'atr' ? `<b style="color:#A12D23">${n === 1 ? '1 mes' : n + ' meses'}</b><br>${Cap(MESL[m - 1])}` : Cap(MESL[m - 1]), 'white-space:nowrap')}</tr>`;
-  }
-  const extra = lista.length > MAX ? `<p style="font-size:13px;color:#566C6E">Y ${lista.length - MAX} más. <a href="${APP_URL}#alertas" style="color:#00756E">Ver la lista completa en el sistema</a>.</p>` : '';
-  return `<table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse"><tr>${th('Equipo')}${th('Serie')}${th('Ubicación')}${th(tipo === 'atr' ? 'Atraso' : 'Mes')}</tr>${filas}</table>${extra}`;
-}
-function tablaCal(lista) {
-  if (!lista.length) return '<p style="color:#566C6E;font-size:14px;margin:4px 0 0">Nada en esta lista.</p>';
-  const filas = lista.slice(0, MAX).map(e => `<tr>${td(`<b>${esc(e.equipo)}</b><br><span style="color:#566C6E">${esc([e.marca, e.modelo].filter(Boolean).join(' '))}</span>`)}${td(esc(e.serie || '—'))}${td(esc([e.servicio, e.ubicacion].filter(Boolean).join(' · ')))}${td(fmt(e.vence), 'white-space:nowrap')}</tr>`).join('');
-  const extra = lista.length > MAX ? `<p style="font-size:13px;color:#566C6E">Y ${lista.length - MAX} más en el sistema.</p>` : '';
-  return `<table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse"><tr>${th('Equipo')}${th('Serie')}${th('Servicio')}${th('Vence')}</tr>${filas}</table>${extra}`;
-}
-function correo(P, C) {
-  const caja = (n, l, color) => `<td style="padding:10px 12px;border:1px solid #D6E1E1;border-radius:8px;background:#fff"><div style="font-size:26px;font-weight:bold;color:${color};line-height:1.1">${n}</div><div style="font-size:12px;color:#566C6E">${l}</div></td>`;
-  const sec = (t, h) => `<h2 style="font-size:17px;margin:28px 0 8px;color:#132527">${t}</h2>${h}`;
+/* ---------- armar el correo (resumido) ---------- */
+const URGENTES = 10;
+function correo(P) {
+  const caja = (n, l, color) => `<td style="padding:10px 12px;border:1px solid #D6E1E1;border-radius:8px;background:#fff;width:25%"><div style="font-size:24px;font-weight:bold;color:${color};line-height:1.1">${n}</div><div style="font-size:12px;color:#566C6E">${l}</div></td>`;
+  // conteo por servicio
+  const serv = {};
+  const sumar = (lista, k) => lista.forEach(({ it }) => { const s = serv[it.servicio] || (serv[it.servicio] = { atr: 0, mes: 0, prox: 0 }); s[k]++; });
+  sumar(P.atr, 'atr'); sumar(P.mes, 'mes'); sumar(P.prox, 'prox');
+  const filasServ = Object.entries(serv).sort((a, b) => b[1].atr - a[1].atr || b[1].mes - a[1].mes).map(([n, s]) =>
+    `<tr><td style="padding:6px 8px;font-size:13px;border-bottom:1px solid #EEF3F3">${esc(n)}</td><td style="padding:6px 8px;font-size:13px;border-bottom:1px solid #EEF3F3;text-align:center;color:#A12D23;font-weight:bold">${s.atr || '–'}</td><td style="padding:6px 8px;font-size:13px;border-bottom:1px solid #EEF3F3;text-align:center">${s.mes || '–'}</td><td style="padding:6px 8px;font-size:13px;border-bottom:1px solid #EEF3F3;text-align:center">${s.prox || '–'}</td></tr>`).join('');
+  const th = (t, c) => `<th style="padding:6px 8px;font-size:12px;color:#566C6E;border-bottom:1px solid #D6E1E1;text-align:${c ? 'center' : 'left'}">${t}</th>`;
+  // los más urgentes: mayor riesgo y más atraso
+  const rango = it => ({ III: 0, IIB: 1, IIA: 2, I: 3 }[it.riesgo] ?? 4);
+  const urg = P.atr.slice().sort((a, b) => rango(a.it) - rango(b.it) || P.atraso(b.m) - P.atraso(a.m)).slice(0, URGENTES);
+  const filasUrg = urg.map(({ it, m }) => { const n = P.atraso(m); return `<tr><td style="padding:6px 8px;font-size:13px;border-bottom:1px solid #EEF3F3"><b>${esc(it.eq)}</b>${it.serie && it.serie !== 'N/P' ? ' · ' + esc(it.serie) : ''}<br><span style="color:#566C6E">${esc([it.servicio, it.ubic].filter(Boolean).join(' · '))}</span></td><td style="padding:6px 8px;font-size:13px;border-bottom:1px solid #EEF3F3;text-align:right;white-space:nowrap"><b style="color:#A12D23">${n === 1 ? '1 mes' : n + ' meses'}</b><br><span style="color:#566C6E">${Cap(MESL[m - 1])}</span></td></tr>`; }).join('');
+  const hayAlgo = P.atr.length || P.mes.length || P.prox.length;
   return `<!doctype html><html><body style="margin:0;background:#EEF3F3;font-family:Arial,Helvetica,sans-serif;color:#132527">
-  <div style="max-width:760px;margin:0 auto;padding:20px">
-    <div style="background:#0D2426;color:#fff;border-radius:12px 12px 0 0;padding:18px 22px">
+  <div style="max-width:640px;margin:0 auto;padding:20px">
+    <div style="background:#0D2426;color:#fff;border-radius:12px 12px 0 0;padding:16px 20px">
       <div style="font-size:13px;color:#86A9A6">Clínica La Merced · Electromedicina</div>
-      <div style="font-size:21px;font-weight:bold;margin-top:4px">Alertas de mantenimiento</div>
-      <div style="font-size:13px;color:#D5E7E5;margin-top:4px">Corte al ${fmt(TODAY)} · Cronograma ${P.anio}</div>
+      <div style="font-size:20px;font-weight:bold;margin-top:4px">Alertas de mantenimiento preventivo</div>
+      <div style="font-size:13px;color:#D5E7E5;margin-top:4px">Corte al ${fmt(TODAY)}</div>
     </div>
-    <div style="background:#F7FAFA;border:1px solid #D6E1E1;border-top:0;border-radius:0 0 12px 12px;padding:18px 22px">
+    <div style="background:#F7FAFA;border:1px solid #D6E1E1;border-top:0;border-radius:0 0 12px 12px;padding:16px 20px">
       <table cellpadding="0" cellspacing="6" style="width:100%;border-collapse:separate"><tr>
-        ${caja(P.atr.length, 'Preventivos atrasados', '#A12D23')}${caja(P.mes.length, 'Toca este mes', '#8A5608')}${caja(P.prox.length, 'Próximo mes', '#8A5608')}
-      </tr><tr>
-        ${caja(C.venc.length, 'Calibraciones vencidas', '#A12D23')}${caja(C.por.length, 'Calibraciones en 30 días', '#8A5608')}${caja(P.cumplimiento == null ? '—' : P.cumplimiento + ' %', 'Cumplimiento del preventivo', '#00675F')}
+        ${caja(P.atr.length, 'Atrasados', '#A12D23')}${caja(P.mes.length, 'Toca este mes', '#8A5608')}${caja(P.prox.length, 'Próximo mes', '#8A5608')}${caja(P.cumplimiento == null ? '—' : P.cumplimiento + '%', 'Cumplimiento', '#00675F')}
       </tr></table>
-      <p style="margin:18px 0 0"><a href="${APP_URL}#alertas" style="display:inline-block;background:#00756E;color:#fff;text-decoration:none;font-weight:bold;padding:10px 18px;border-radius:8px">Abrir el sistema</a></p>
-      ${sec(`Preventivos atrasados (${P.atr.length})`, tablaPrev(P.atr, 'atr', P))}
-      ${sec(`Toca este mes: ${MESL[NOW.m - 1]} (${P.mes.length})`, tablaPrev(P.mes, 'mes', P))}
-      ${sec(`Próximo mes (${P.prox.length})`, tablaPrev(P.prox, 'prox', P))}
-      ${sec(`Calibraciones vencidas (${C.venc.length})`, tablaCal(C.venc))}
-      ${sec(`Calibraciones que vencen en los próximos 30 días (${C.por.length})`, tablaCal(C.por))}
-      <p style="font-size:12px;color:#566C6E;margin-top:28px;border-top:1px solid #D6E1E1;padding-top:12px">Mensaje automático del sistema de gestión de equipos biomédicos de la Clínica La Merced. Se envía cada lunes. Para registrar un mantenimiento, ábrelo en el sistema, toca el mes y adjunta el formato escaneado.</p>
+      ${hayAlgo ? `<h2 style="font-size:16px;margin:22px 0 6px">Por servicio</h2>
+      <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#fff"><tr>${th('Servicio')}${th('Atrasados', 1)}${th('Este mes', 1)}${th('Próximo mes', 1)}</tr>${filasServ}</table>` : '<p style="font-size:15px;margin:18px 0 0"><b>Todo al día.</b> No hay mantenimientos atrasados ni pendientes.</p>'}
+      ${urg.length ? `<h2 style="font-size:16px;margin:22px 0 6px">Los ${urg.length} más urgentes</h2>
+      <p style="font-size:12px;color:#566C6E;margin:0 0 6px">Equipos de mayor riesgo con más tiempo de atraso.</p>
+      <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#fff">${filasUrg}</table>` : ''}
+      <p style="margin:20px 0 0"><a href="${APP_URL}#alertas" style="display:inline-block;background:#00756E;color:#fff;text-decoration:none;font-weight:bold;padding:10px 18px;border-radius:8px">Ver la lista completa</a></p>
+      <p style="font-size:12px;color:#566C6E;margin-top:22px;border-top:1px solid #D6E1E1;padding-top:10px">Mensaje automático. Se envía cada lunes.</p>
     </div>
   </div></body></html>`;
 }
 
 /* ---------- principal ---------- */
-const [prevDocs, servicios] = await Promise.all([leer('preventivos'), leer('servicios')]);
+const prevDocs = await leer('preventivos');
 if (!Object.keys(prevDocs).length) console.log('Aviso: no hay cronograma cargado en Firebase (colección preventivos).');
 const P = Object.keys(prevDocs).length ? calcularPreventivo(prevDocs) : { anio: NOW.y, atr: [], mes: [], prox: [], cumplimiento: null, atraso: () => 0 };
-const C = calcularCalibraciones(servicios);
-const asunto = `Alertas de mantenimiento ${fmt(TODAY)}: ${P.atr.length} atrasados, ${P.mes.length} este mes, ${C.venc.length} calibraciones vencidas`;
-const html = correo(P, C);
+const asunto = `Mantenimiento preventivo ${fmt(TODAY)}: ${P.atr.length} atrasados, ${P.mes.length} este mes`;
+const html = correo(P);
 console.log(asunto);
 
 const destino = (process.env.CORREO_DESTINO || '').split(/[,;\s]+/).filter(Boolean);
@@ -156,5 +133,5 @@ if (SIN_ENVIO) {
 
 let reg = [];
 try { reg = JSON.parse(fs.readFileSync(REGISTRO, 'utf8')); if (!Array.isArray(reg)) reg = []; } catch (e) { reg = []; }
-reg.push({ fecha: TODAY, hora: pad(HOY.getHours()) + ':' + pad(HOY.getMinutes()), destinatarios: SIN_ENVIO ? 0 : destino.length, atrasados: P.atr.length, esteMes: P.mes.length, proximoMes: P.prox.length, calVencidas: C.venc.length, calPorVencer: C.por.length, cumplimiento: P.cumplimiento, prueba: SIN_ENVIO || undefined });
+reg.push({ fecha: TODAY, hora: pad(HOY.getHours()) + ':' + pad(HOY.getMinutes()), destinatarios: SIN_ENVIO ? 0 : destino.length, atrasados: P.atr.length, esteMes: P.mes.length, proximoMes: P.prox.length, cumplimiento: P.cumplimiento, prueba: SIN_ENVIO || undefined });
 fs.writeFileSync(REGISTRO, JSON.stringify(reg.slice(-200), null, 1) + '\n');

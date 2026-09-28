@@ -284,7 +284,6 @@ button.cell:hover{filter:brightness(1.08)}
       <button data-go="inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4.5-5"/><path d="M4 20h16"/></svg><span class="l-l">Inicio</span><span class="l-s">Inicio</span></button>
       <button data-go="alertas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16v-5a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg><span class="l-l">Alertas</span><span class="l-s">Alertas</span><span class="badge" id="navBadge" hidden></span></button>
       <button data-go="cronograma"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h2M14 14h2M8 17h2"/></svg><span class="l-l">Cronograma</span><span class="l-s">Cronograma</span></button>
-      <button data-go="calibraciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span class="l-l">Calibraciones</span><span class="l-s">Calibración</span></button>
       <button data-go="equipos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M6 11h3l2-3 2 5 2-2h3M9 21h6M12 17v4"/></svg><span class="l-l">Equipos</span><span class="l-s">Equipos</span></button>
       <button data-go="reportes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg><span class="l-l">Reportes</span><span class="l-s">Reportes</span></button>
     </nav>
@@ -337,23 +336,12 @@ button.cell:hover{filter:brightness(1.08)}
       <button class="btn more" id="cMore" hidden>Ver más equipos</button>
     </section>
 
-    <section class="view" id="v-calibraciones" hidden>
-      <div class="tiles" id="calTiles"></div>
-      <div class="tools">
-        <input type="search" id="calq" placeholder="Buscar equipo, serie o servicio" aria-label="Buscar en calibraciones">
-        <select id="calServ" aria-label="Servicio"></select>
-      </div>
-      <p class="count" id="calCount"></p>
-      <ul class="rows" id="calList"></ul>
-      <button class="btn more" id="calMore" hidden>Ver más</button>
-    </section>
-
     <section class="view" id="v-equipos" hidden>
       <div class="tools">
         <input type="search" id="eq" placeholder="Buscar por equipo, serie, inventario, marca…" aria-label="Buscar equipo">
         <select id="eServ" aria-label="Servicio"></select>
-        <select id="eEst" aria-label="Estado de calibración">
-          <option value="">Todos los activos</option><option value="venc">Calibración vencida</option><option value="por">Vence en 30 días</option><option value="sin">Sin calibración</option><option value="ok">Calibración vigente</option><option value="nr">No requiere calibración</option><option value="baja">Dados de baja</option>
+        <select id="eEst" aria-label="Estado del mantenimiento preventivo">
+          <option value="">Todos los activos</option><option value="atr">Preventivo atrasado</option><option value="mes">Toca este mes</option><option value="prox">Toca el próximo mes</option><option value="ok">Preventivo al día</option><option value="sin">No está en el cronograma</option><option value="baja">Dados de baja</option>
         </select>
         <button class="btn pri editor-only" id="eAdd">Nuevo equipo</button>
       </div>
@@ -393,7 +381,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 /* ===== Metas de los indicadores (se pueden cambiar aquí) ===== */
-const META = { preventivo: 90, calibracion: 100, soporte: 100 };
+const META = { preventivo: 90, soporte: 100 };
 const ARCHIVO_CRONOGRAMA = 'cronograma-2026.json';
 
 /* ===== utilidades ===== */
@@ -403,7 +391,6 @@ const pad=n=>String(n).padStart(2,'0');
 const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const HOY=new Date(), TODAY=iso(HOY), NOW={y:HOY.getFullYear(),m:HOY.getMonth()+1};
 const plus=n=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
-const in30=plus(30), in60=plus(60);
 function addMonths(s,m){if(!s)return'';const[y,mo,da]=s.split('-').map(Number);return iso(new Date(y,mo-1+Number(m),da))}
 function fmt(s){if(!s)return'—';const[y,m,d]=String(s).split('-');return d?d+'/'+m+'/'+y:s}
 function slug(t){return (t||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'sin-servicio'}
@@ -425,38 +412,24 @@ function errMsg(err){const c=(err&&err.code)||'';if(c.includes('permission'))ret
 let user=null, servicios={}, equipos=[], prevDocs={}, items=[], anio=NOW.y, anios=[], S=null;
 let loadedS=false, loadedP=false, errP=false, hist=null, histCargando=false, registro;
 let view='inicio', abierto=null;
-const F={alerta:'atr',aq:'',aLim:120,cq:'',cServ:'',cEst:'',cMes:'',cLim:150,eq:'',eServ:'',eEst:'',eLim:80,calTile:'venc',calq:'',calServ:'',calLim:80};
+const F={alerta:'atr',aq:'',aLim:120,cq:'',cServ:'',cEst:'',cMes:'',cLim:150,eq:'',eServ:'',eEst:'',eLim:80};
 const urlId=new URLSearchParams(location.search).get('id');
 
-/* ===== inventario y calibraciones ===== */
-const EST={venc:'Vencida',por:'Por vencer',sin:'Sin calibración',ok:'Vigente',nr:'No requiere',baja:'De baja'};
-const TONE_CAL={venc:'late',sin:'late',por:'due',ok:'done',nr:'plan',baja:'plan'};
-function estadoCal(e){
-  if(e.baja)return'baja';
-  if((e.metrologia||'').toUpperCase()==='NO REQUIERE'||!e.metrologia)return'nr';
-  if(!e.vence)return'sin';
-  if(e.vence<TODAY)return'venc';
-  if(e.vence<=in30)return'por';
-  return'ok';
-}
+/* ===== inventario ===== */
 function rebuildEquipos(){
   const list=[];
   for(const[sid,sv] of Object.entries(servicios))for(const[id,e] of Object.entries(sv.equipos||{}))list.push(Object.assign({},e,{id,sid,servicio:sv.nombre||sid}));
-  list.forEach(e=>{e.est=estadoCal(e);e.txt=[e.inv,e.equipo,e.marca,e.modelo,e.serie,e.servicio,e.ubicacion,e.id].join(' ').toLowerCase()});
+  list.forEach(e=>{e.txt=[e.inv,e.equipo,e.marca,e.modelo,e.serie,e.servicio,e.ubicacion,e.id].join(' ').toLowerCase()});
   list.sort((a,b)=>(a.orden||9e15)-(b.orden||9e15));
   equipos=list;
   const opts=Object.entries(servicios).sort((a,b)=>(a[1].nombre||'').localeCompare(b[1].nombre||''));
-  for(const sel of [$('#eServ'),$('#calServ')]){const cur=sel.value;sel.innerHTML='<option value="">Todos los servicios</option>'+opts.map(([id,s])=>`<option value="${esc(id)}">${esc(s.nombre)} (${Object.keys(s.equipos||{}).length})</option>`).join('');sel.value=cur}
+  const sel=$('#eServ'),cur=sel.value;sel.innerHTML='<option value="">Todos los servicios</option>'+opts.map(([id,s])=>`<option value="${esc(id)}">${esc(s.nombre)} (${Object.keys(s.equipos||{}).length})</option>`).join('');sel.value=cur;
 }
 const byId=id=>equipos.find(e=>e.id===id);
 const refS=sid=>doc(db,'servicios',sid);
 async function patchEquipo(e,patch){await setDoc(refS(e.sid),{equipos:{[e.id]:patch}},{merge:true})}
-function calStats(){
-  const act=equipos.filter(e=>e.est!=='baja'), req=act.filter(e=>e.est!=='nr');
-  const g=k=>act.filter(e=>e.est===k);
-  const soon=act.filter(e=>e.vence&&e.vence>=TODAY&&e.vence<=in60&&e.est!=='nr');
-  return{act,req,alDia:req.filter(e=>e.est==='ok'||e.est==='por').length,venc:g('venc'),por:g('por'),sin:g('sin'),ok:g('ok'),soon};
-}
+function prevPorEquipo(){const m={};for(const it of items)if(it.equipoId&&!m[it.equipoId])m[it.equipoId]=it;return m}
+const estEq=(e,pm)=>e.baja?'baja':pm[e.id]?pm[e.id].e.st:'sin';
 
 /* ===== mantenimiento preventivo ===== */
 function rebuildPrev(){
@@ -526,12 +499,11 @@ const lugar=it=>[it.servicio,it.area&&it.area!==it.servicio?it.area:'',it.ubic].
 
 /* ===== navegación ===== */
 const VIEWS={
-  inicio:['Inicio',()=>`Mantenimiento preventivo y calibraciones de ${anio}. Datos al ${fmt(TODAY)}.`],
-  alertas:['Alertas',()=>'Lo que está atrasado o por vencer. Cada lunes llega un resumen por correo.'],
+  inicio:['Inicio',()=>`Mantenimiento preventivo de ${anio}. Datos al ${fmt(TODAY)}.`],
+  alertas:['Alertas',()=>'Mantenimientos atrasados y por hacer. Cada lunes llega un resumen por correo.'],
   cronograma:['Cronograma preventivo',()=>`F-EMD-22 · año ${anio}. Toca un mes para ver o registrar el mantenimiento.`],
-  calibraciones:['Calibraciones',()=>'Vencimientos de calibración de los equipos del inventario.'],
   equipos:['Equipos',()=>'Inventario y hojas de vida de los equipos biomédicos.'],
-  reportes:['Reportes',()=>'Descargas en Excel para calidad y la Supersalud.']
+  reportes:['Reportes',()=>'Descargas en Excel del mantenimiento y el inventario.']
 };
 function go(v,push){
   if(!VIEWS[v])v='inicio';view=v;
@@ -543,11 +515,11 @@ function go(v,push){
 window.addEventListener('popstate',()=>go(location.hash.slice(1)));
 function renderView(){
   $('#vt').textContent=VIEWS[view][0];$('#vs').textContent=VIEWS[view][1]();
-  ({inicio:renderInicio,alertas:renderAlertas,cronograma:renderCrono,calibraciones:renderCal,equipos:renderEquipos,reportes:renderReportes})[view]();
+  ({inicio:renderInicio,alertas:renderAlertas,cronograma:renderCrono,equipos:renderEquipos,reportes:renderReportes})[view]();
   renderNav();
 }
 function renderNav(){
-  const n=(S?S.atr.length:0)+(loadedS?calStats().venc.length:0);
+  const n=S?S.atr.length:0;
   const b=$('#navBadge');b.hidden=!n;b.textContent=n>999?'999+':n;
 }
 const cargando='<p class="empty">Cargando datos…</p>';
@@ -561,7 +533,6 @@ function kpi({t,val,unit,tone,meter,meta,foot,pill}){
 function renderInicio(){
   const el=$('#v-inicio');
   if(!loadedS||!loadedP){el.innerHTML=cargando;return}
-  const C=calStats();
   let hero='';
   if(items.length){
     const p=pc(S.hech,S.prog);
@@ -591,21 +562,21 @@ function renderInicio(){
   }
   const pPrev=items.length?pc(S.hech,S.prog):null;
   const mT=anio===NOW.y&&items.length?S.tot[NOW.m]:0, mH=anio===NOW.y&&items.length?S.hec[NOW.m]:0;
-  const pCal=pc(C.alDia,C.req.length), pSop=items.length?pc(S.rSop,S.rTot):null;
+  const pSop=items.length?pc(S.rSop,S.rTot):null;
   const toneP=v=>v==null?'plan':v>=META.preventivo?'done':v>=70?'due':'late';
   const toneM=(v,meta)=>v==null?'plan':v>=meta?'done':v>=meta*.7?'due':'late';
   let actMes='…',corr='…';
   if(hist){
     const ini=TODAY.slice(0,8)+'01',d30=plus(-30);
     const ejMes=items.filter(it=>!it.equipoId).reduce((n,it)=>n+Object.values(it.ejec).filter(x=>x&&x.fecha>=ini&&x.fecha<=TODAY).length,0);
-    actMes=hist.filter(x=>x.fecha>=ini&&x.fecha<=TODAY).length+ejMes;
+    actMes=hist.filter(x=>x.fecha>=ini&&x.fecha<=TODAY&&!/calibr/i.test(x.tipo||'')).length+ejMes;
     corr=hist.filter(x=>x.fecha>=d30&&/correctivo|falla/i.test(x.tipo||'')).length;
   }
   const kp=[
     kpi({t:'Cumplimiento del preventivo',val:pPrev??'—',unit:pPrev==null?'':'%',tone:toneP(pPrev),meter:pPrev,meta:META.preventivo,foot:`Meta ${META.preventivo} %`,pill:pPrev==null?'':pPrev>=META.preventivo?'Cumple':'No cumple'}),
     kpi({t:`Preventivos de ${MESL[NOW.m-1]}`,val:items.length?mH:'—',unit:items.length?`de ${mT}`:'',tone:mT?(mH>=mT?'done':'due'):'plan',meter:items.length?(pc(mH,mT)??0):null,foot:!items.length?'Sin cronograma':mT?(mT-mH?`Faltan ${mT-mH} por hacer este mes`:'Todos hechos'):'Nada programado este mes'}),
     kpi({t:'Preventivos atrasados',val:items.length?S.atr.length:'—',unit:'',tone:items.length?(S.atr.length?'late':'done'):'plan',foot:items.length?(S.atr.length?`En ${S.eqAtr} equipos`:'Nada atrasado'):'Sin cronograma',pill:items.length?(S.atr.length?'Meta 0':'Cumple'):''}),
-    kpi({t:'Calibraciones al día',val:pCal??'—',unit:pCal==null?'':'%',tone:toneM(pCal,META.calibracion),meter:pCal,meta:META.calibracion,foot:`${C.venc.length} vencidas, ${C.sin.length} sin calibración`,pill:pCal==null?'':pCal>=META.calibracion?'Cumple':'Meta '+META.calibracion+' %'}),
+    kpi({t:`Preventivos de ${MESL[NOW.m%12]}`,val:items.length?S.prox.length:'—',unit:'',tone:'plan',foot:items.length?'Programados para el próximo mes':'Sin cronograma'}),
     kpi({t:'Mantenimientos con soporte digital',val:pSop??'—',unit:pSop==null?'':'%',tone:toneM(pSop,META.soporte),meter:pSop,meta:META.soporte,foot:items.length?`${S.rSop} de ${S.rTot} realizados tienen el formato escaneado`:'Sin cronograma'}),
     kpi({t:`Actividades registradas en ${MESL[NOW.m-1]}`,val:actMes,unit:'',tone:'plan',foot:`Correctivos y fallas en 30 días: ${corr}`})
   ];
@@ -617,14 +588,13 @@ function renderInicio(){
       <span class="sub">${s.hech} de ${s.prog} a la fecha${s.atr?`, ${s.atr} atrasados`:''} · ${s.eq} equipos</span></button></li>`).join('')}</ul>`;
   }
   const primero=[...S.atr.map(x=>['atr',x]),...S.mes.map(x=>['mes',x])].sort((a,b)=>a[0]!==b[0]?(a[0]==='atr'?-1:1):(rRank(a[1].it)-rRank(b[1].it))||(atraso(b[1].m)-atraso(a[1].m))).slice(0,7);
-  const calPrim=C.venc.slice().sort((a,b)=>(a.vence||'').localeCompare(b.vence||'')).slice(0,Math.max(0,7-primero.length));
   el.innerHTML=`${hero}
     <h2 class="sec">Indicadores de desempeño</h2>
     <div class="kpis">${kp.join('')}</div>
     <div class="cols" style="margin-top:16px">
       <section class="panel"><h3>Cumplimiento por servicio</h3><p class="hint">Preventivos hechos frente a los programados hasta hoy. Arriba, los que van peor.</p>${servHtml}</section>
       <section class="panel"><h3>Atender primero</h3><p class="hint">Atrasados primero, empezando por los equipos de mayor riesgo. Luego lo que toca este mes.</p>
-        <ul class="rows">${primero.map(([k,x])=>rowPrev(x,k)).join('')}${calPrim.map(rowCal).join('')||''}${!primero.length&&!calPrim.length?'<li class="empty">Nada pendiente. Todo al día.</li>':''}</ul>
+        <ul class="rows">${primero.map(([k,x])=>rowPrev(x,k)).join('')}${!primero.length?'<li class="empty">Nada pendiente. Todo al día.</li>':''}</ul>
       </section>
     </div>`;
 }
@@ -636,34 +606,32 @@ function rowPrev({it,m},k){
   const rt=k==='atr'?`${n===1?'1 mes':n+' meses'} de atraso<span>Programado en ${MESL[m-1]}</span>`:k==='mes'?`Toca este mes<span>${Cap(MESL[m-1])}</span>`:`Próximo mes<span>${Cap(MESL[m-1])}</span>`;
   return `<li><button class="row t-${tone}" data-act="verPrev" data-d="${esc(it.did)}" data-id="${esc(it.id)}"><span class="bar"></span><span><b>${esc(it.eq||'Equipo')}</b><span class="sub">${esc(subEq(it))}</span><span class="sub">${esc(lugar(it))}</span></span><span class="rt">${rt}</span></button></li>`;
 }
-function rowCal(e){
-  const tone=TONE_CAL[e.est];
+function rowEq(e,pm){
+  const it=pm[e.id],st=estEq(e,pm);
+  const tone=['baja','sin','na','fuera'].includes(st)?'plan':TONE[st];
   const sub=[e.marca,e.modelo].filter(Boolean).join(' ')+(e.serie?' · Serie '+e.serie:'');
   const where=[e.servicio,e.ubicacion].filter(Boolean).join(' · ');
-  const rt=['ok','por','venc'].includes(e.est)?`${e.est==='venc'?'Calibración vencida':e.est==='por'?'Calibración por vencer':'Calibración vigente'}<span>${fmt(e.vence)}</span>`:e.est==='sin'?'Sin calibración<span>Requiere</span>':EST[e.est];
+  const rt=st==='baja'?'Dado de baja':st==='sin'?'Sin cronograma':st==='atr'?`Preventivo atrasado<span>Desde ${MESL[it.e.late[0]-1]}</span>`:st==='mes'?`Toca este mes<span>${Cap(MESL[it.e.cur-1])}</span>`:st==='prox'?`Toca el próximo mes<span>${Cap(MESL[it.e.next-1])}</span>`:st==='ok'?`Preventivo al día<span>${it.e.next?'Próximo: '+MESL[it.e.next-1]:'Sin más este año'}</span>`:ESTP[st];
   return `<li><button class="row t-${tone}" data-act="verEq" data-id="${esc(e.id)}"><span class="bar"></span><span><b>${esc(e.equipo||'Equipo sin nombre')}</b><span class="sub">${esc(sub)}</span><span class="sub">${esc(e.inv&&e.inv!=='N/P'?e.inv+' · ':'')}${esc(where)}</span></span><span class="rt">${rt}</span></button></li>`;
 }
 const match=(txt,q)=>{const w=q.trim().toLowerCase().split(/\s+/).filter(Boolean);return w.every(x=>txt.includes(x))};
 
 /* ===== ALERTAS ===== */
 function renderAlertas(){
-  if(!loadedS||!loadedP){$('#aList').innerHTML='<li>'+cargando+'</li>';return}
-  const C=calStats();
-  const L={atr:S.atr,mes:S.mes,prox:S.prox,calv:C.venc,calp:C.por};
-  const tabs=[['atr','Preventivos atrasados','late'],['mes','Toca este mes','due'],['prox','Próximo mes','due'],['calv','Calibraciones vencidas','late'],['calp','Calibraciones en 30 días','due']];
+  if(!loadedP){$('#aList').innerHTML='<li>'+cargando+'</li>';return}
+  const L={atr:S.atr,mes:S.mes,prox:S.prox};
+  const tabs=[['atr','Atrasados','late'],['mes','Toca este mes','due'],['prox','Próximo mes','due']];
   $('#aSeg').innerHTML=tabs.map(([k,l,t])=>`<button class="t-${t}" data-alerta="${k}" aria-pressed="${F.alerta===k}"><b>${L[k].length}</b>${l}</button>`).join('');
-  const esCal=F.alerta.startsWith('cal');
-  let list=L[F.alerta].filter(x=>match(esCal?x.txt:x.it.txt,F.aq));
-  if(esCal)list=list.slice().sort((a,b)=>(a.vence||'').localeCompare(b.vence||''));
-  $('#aCount').textContent=`${list.length} ${esCal?'equipo':'mantenimiento'}${list.length===1?'':'s'}`;
-  $('#aList').innerHTML=list.length?list.slice(0,F.aLim).map(x=>esCal?rowCal(x):rowPrev(x,F.alerta)).join(''):'<li class="empty">No hay nada en esta lista. Buen trabajo.</li>';
+  const list=L[F.alerta].filter(x=>match(x.it.txt,F.aq));
+  $('#aCount').textContent=`${list.length} mantenimiento${list.length===1?'':'s'}`;
+  $('#aList').innerHTML=list.length?list.slice(0,F.aLim).map(x=>rowPrev(x,F.alerta)).join(''):'<li class="empty">No hay nada en esta lista. Buen trabajo.</li>';
   $('#aMore').hidden=list.length<=F.aLim;
   cargarRegistro();
   const lg=$('#aLog');
   if(registro===undefined||registro===null){lg.innerHTML='<p class="empty" style="padding:0">Cargando…</p>';return}
-  if(!registro.length){lg.innerHTML='<h3>Aún no se ha enviado ningún correo</h3><p class="hint" style="margin:6px 0 0">Cuando actives el correo semanal en GitHub, aquí queda la lista de cada envío. Sirve como evidencia de que el sistema de alertas funciona.</p>';return}
+  if(!registro.length){lg.innerHTML='<h3>Aún no se ha enviado ningún correo</h3><p class="hint" style="margin:6px 0 0">Cuando actives el correo semanal en GitHub, aquí queda la lista de cada envío.</p>';return}
   const r=registro.slice().reverse().slice(0,12);
-  lg.innerHTML=`<p class="hint">Cada lunes se envía un resumen a los responsables. Este es el registro de los últimos envíos.</p><div style="overflow-x:auto"><table class="log"><thead><tr><th>Fecha</th><th>Destinatarios</th><th>Atrasados</th><th>Este mes</th><th>Próximo mes</th><th>Calibr. vencidas</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(fmt(x.fecha))}</td><td class="n">${esc(x.destinatarios??'')}</td><td class="n">${esc(x.atrasados??'')}</td><td class="n">${esc(x.esteMes??'')}</td><td class="n">${esc(x.proximoMes??'')}</td><td class="n">${esc(x.calVencidas??'')}</td></tr>`).join('')}</tbody></table></div>`;
+  lg.innerHTML=`<p class="hint">Cada lunes se envía un resumen a los responsables. Este es el registro de los últimos envíos.</p><div style="overflow-x:auto"><table class="log"><thead><tr><th>Fecha</th><th>Destinatarios</th><th>Atrasados</th><th>Este mes</th><th>Próximo mes</th><th>Cumplimiento</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(fmt(x.fecha))}</td><td class="n">${esc(x.destinatarios??'')}</td><td class="n">${esc(x.atrasados??'')}</td><td class="n">${esc(x.esteMes??'')}</td><td class="n">${esc(x.proximoMes??'')}</td><td class="n">${x.cumplimiento!=null?esc(x.cumplimiento)+' %':'—'}</td></tr>`).join('')}</tbody></table></div>`;
 }
 async function cargarRegistro(){
   if(registro!==undefined)return;registro=null;
@@ -696,25 +664,13 @@ function renderCrono(){
   $('#cMore').hidden=list.length<=F.cLim;
 }
 
-/* ===== CALIBRACIONES ===== */
-function renderCal(){
-  if(!loadedS){$('#calList').innerHTML='<li>'+cargando+'</li>';return}
-  const C=calStats();
-  const T=[['venc',C.venc,'Vencidas','late'],['por',C.por,'Vencen en 30 días','due'],['p60',C.soon,'Vencen en 60 días','due'],['sin',C.sin,'Requieren y no tienen calibración','late']];
-  $('#calTiles').innerHTML=T.map(([k,l,n,t])=>`<button class="tile t-${t}" data-tile="${k}" aria-pressed="${F.calTile===k}"><strong>${l.length}</strong><span>${n}</span></button>`).join('');
-  let list=T.find(t=>t[0]===F.calTile)[1].filter(e=>(!F.calServ||e.sid===F.calServ)&&match(e.txt,F.calq));
-  list=list.slice().sort((a,b)=>(a.vence||'9').localeCompare(b.vence||'9')||a.servicio.localeCompare(b.servicio));
-  $('#calCount').textContent=`${list.length} equipo${list.length===1?'':'s'}`;
-  $('#calList').innerHTML=list.length?list.slice(0,F.calLim).map(rowCal).join(''):'<li class="empty">Nada pendiente aquí.</li>';
-  $('#calMore').hidden=list.length<=F.calLim;
-}
-
 /* ===== EQUIPOS ===== */
 function renderEquipos(){
   if(!loadedS){$('#eList').innerHTML='<li>'+cargando+'</li>';return}
-  const f=equipos.filter(e=>(!F.eServ||e.sid===F.eServ)&&(F.eEst?e.est===F.eEst:e.est!=='baja')&&match(e.txt,F.eq));
+  const pm=prevPorEquipo();
+  const f=equipos.filter(e=>{const st=estEq(e,pm);return(!F.eServ||e.sid===F.eServ)&&(F.eEst?(F.eEst==='ok'?['ok','na'].includes(st):st===F.eEst):st!=='baja')&&match(e.txt,F.eq)});
   $('#eCount').textContent=`${f.length} equipo${f.length===1?'':'s'}`;
-  $('#eList').innerHTML=f.length?f.slice(0,F.eLim).map(rowCal).join(''):`<li class="empty">${equipos.length?'No hay equipos con esa búsqueda. Prueba con otra palabra o quita los filtros.':'Todavía no hay equipos cargados.'}</li>`;
+  $('#eList').innerHTML=f.length?f.slice(0,F.eLim).map(e=>rowEq(e,pm)).join(''):`<li class="empty">${equipos.length?'No hay equipos con esa búsqueda. Prueba con otra palabra o quita los filtros.':'Todavía no hay equipos cargados.'}</li>`;
   $('#eMore').hidden=f.length<=F.eLim;
 }
 
@@ -725,11 +681,11 @@ function renderReportes(){
   cargarRegistro();
   const ult=Array.isArray(registro)&&registro.length?registro[registro.length-1]:null;
   el.innerHTML=`<div class="rep">
-    <section class="panel"><h3>Matriz de evidencias del mantenimiento preventivo</h3><p class="hint">Una fila por cada mantenimiento programado: estado, fecha, quién lo hizo y el enlace al formato escaneado. Incluye una hoja de resumen con los indicadores. Es el consolidado para la Supersalud (hallazgo 5).</p>
-      <div class="actions"><button class="btn pri" data-act="xMatriz" ${items.length?'':'disabled'}>Descargar matriz en Excel</button></div></section>
+    <section class="panel"><h3>Registro de mantenimiento preventivo</h3><p class="hint">Una fila por cada mantenimiento programado: estado, fecha, quién lo hizo y el enlace al formato escaneado. Incluye una hoja de resumen con los indicadores.</p>
+      <div class="actions"><button class="btn pri" data-act="xMatriz" ${items.length?'':'disabled'}>Descargar registro en Excel</button></div></section>
     <section class="panel"><h3>Cronograma F-EMD-22</h3><p class="hint">El cronograma de ${anio} con una hoja por servicio y los meses marcados como Programado o Realizado, igual que el formato de la clínica.</p>
       <div class="actions"><button class="btn" data-act="xCrono" ${items.length?'':'disabled'}>Descargar cronograma en Excel</button></div></section>
-    <section class="panel"><h3>Inventario y calibraciones</h3><p class="hint">Todos los equipos con su estado de calibración, fecha de realización y vencimiento.</p>
+    <section class="panel"><h3>Inventario de equipos</h3><p class="hint">Todos los equipos con su servicio, ubicación y el estado del mantenimiento preventivo.</p>
       <div class="actions"><button class="btn" data-act="xInv" ${equipos.length?'':'disabled'}>Descargar inventario en Excel</button></div></section>
     <section class="panel"><h3>Indicadores para imprimir</h3><p class="hint">Abre la página de inicio lista para imprimir o guardar como PDF, con la fecha de corte.</p>
       <div class="actions"><button class="btn" data-act="imprimir">Imprimir indicadores</button></div></section>
@@ -886,24 +842,22 @@ function formPrev(it){
 }
 
 /* ===== ficha del equipo (inventario) ===== */
-const TIPOS=['Calibración','Mantenimiento preventivo','Mantenimiento correctivo','Falla reportada','Traslado','Otro'];
+const TIPOS=['Mantenimiento preventivo','Mantenimiento correctivo','Falla reportada','Traslado','Otro'];
 function fichaEquipo(e,keep){
   abierto={t:'eq',id:e.id};
   const docs=(e.adjuntos||[]).map((a,i)=>`<li><a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.nombre)}</a> <span style="color:var(--muted)">· ${fmt(a.fecha)}</span>${user?` <button class="btn sm" data-act="quitarDoc" data-i="${i}">Quitar</button>`:''}</li>`).join('');
   const pv=items.filter(it=>it.equipoId===e.id);
   const html=`
-    <p style="margin:0 0 14px"><span class="chip t-${TONE_CAL[e.est]}">${e.est==='nr'?'No requiere calibración':e.est==='sin'?'Sin calibración':'Calibración '+EST[e.est].toLowerCase()}${e.vence&&e.est!=='nr'?' · vence '+fmt(e.vence):''}</span></p>
+    ${e.baja?'<p style="margin:0 0 14px"><span class="chip t-plan">Dado de baja</span></p>':''}
     <dl class="dl">
       ${dd('Código en la app',e.id.toUpperCase())}${dd('Inventario',e.inv)}
       ${dd('Serie',e.serie)}${dd('Marca',e.marca)}
       ${dd('Modelo',e.modelo)}${dd('Servicio',e.servicio)}
-      ${dd('Ubicación',e.ubicacion)}${dd('Control metrológico',e.metrologia)}
-      ${dd('Prioridad',e.prioridad)}${dd('Estado',e.baja?'Dado de baja':'Activo')}
-      ${dd('Última calibración',fmt(e.ultimaCal))}${dd('Próximo vencimiento',fmt(e.vence))}
-      ${dd('Valor estimado calibración',e.valor?'$ '+Number(e.valor).toLocaleString('es-CO'):'',true)}
+      ${dd('Ubicación',e.ubicacion)}${dd('Prioridad',e.prioridad)}
+      ${dd('Estado',e.baja?'Dado de baja':'Activo')}
       ${dd('Observaciones',e.obs,true)}
     </dl>
-    ${user?`<div class="actions"><button class="btn pri" data-act="evento">Registrar calibración o actividad</button><button class="btn" data-act="editar">Editar datos</button><button class="btn" data-act="doc">Agregar documento</button></div>`:''}
+    ${user?`<div class="actions"><button class="btn pri" data-act="evento">Registrar actividad</button><button class="btn" data-act="editar">Editar datos</button><button class="btn" data-act="doc">Agregar documento</button></div>`:''}
     <h3>Mantenimiento preventivo ${anio}</h3>
     ${pv.length?pv.map(it=>`<p style="margin:0 0 6px"><span class="chip t-${TONE[it.e.st]}">${ESTP[it.e.st]}</span> <span style="color:var(--muted);font-size:.9rem">${esc(Cap((it.per||'').toLowerCase()))}</span></p>${miniStrip(it)}<div class="actions" style="margin-top:-6px"><button class="btn sm" data-act="verPrev" data-d="${esc(it.did)}" data-id="${esc(it.id)}">Ver en el cronograma</button></div>`).join(''):'<p class="empty" style="padding:0">Este equipo no aparece en el cronograma de mantenimiento preventivo.</p>'}
     <h3>Documentos</h3>
@@ -929,19 +883,17 @@ function eventoForm(e){
   const html=`<form id="evForm" class="form">
     <div class="field"><label for="evTipo">Tipo de actividad</label><select id="evTipo">${TIPOS.map(t=>`<option>${t}</option>`).join('')}</select></div>
     <div class="field"><label for="evFecha">Fecha</label><input id="evFecha" type="date" value="${TODAY}" required></div>
-    <div class="field w" id="calBox"><label for="evMeses">Próxima calibración en (meses)</label><input id="evMeses" type="number" min="1" max="60" value="12"></div>
     <div class="field w"><label for="evQuien">Realizado por</label><input id="evQuien" placeholder="Técnico, empresa o proveedor"></div>
-    <div class="field w"><label for="evDet">Detalle</label><textarea id="evDet" rows="4" placeholder="Resultado, número de certificado, repuestos…"></textarea></div>
+    <div class="field w"><label for="evDet">Detalle</label><textarea id="evDet" rows="4" placeholder="Resultado, número de reporte, repuestos…"></textarea></div>
     <div class="actions field w"><button class="btn pri" type="submit">Guardar actividad</button><button class="btn" type="button" data-act="volverEq">Volver</button></div>
   </form>`;
   openSheet('Actividad · '+(e.equipo||''),html,'form');
-  const t=$('#evTipo');t.onchange=()=>$('#calBox').hidden=t.value!=='Calibración';
+  const t=$('#evTipo');
   $('#evForm').onsubmit=async ev=>{
     ev.preventDefault();const btn=$('#evForm button[type=submit]');btn.disabled=true;
     const item={tipo:t.value,fecha:$('#evFecha').value,quien:$('#evQuien').value.trim(),detalle:$('#evDet').value.trim(),creado:new Date().toISOString(),por:user.email};
     try{
       await setDoc(doc(db,'historial',e.id),{eventos:arrayUnion(item)},{merge:true});
-      if(item.tipo==='Calibración'&&item.fecha)await patchEquipo(e,{ultimaCal:item.fecha,vence:addMonths(item.fecha,$('#evMeses').value||12),metrologia:(e.metrologia&&e.metrologia!=='NO REQUIERE')?e.metrologia:'CALIBRACION'});
       if(hist)hist.push(Object.assign({equipoId:e.id},item));
       toast('Actividad guardada');fichaEquipo(byId(e.id)||e);
     }catch(err){btn.disabled=false;toast(errMsg(err))}
@@ -949,7 +901,7 @@ function eventoForm(e){
 }
 function docForm(e){
   const html=`<form id="docForm" class="form">
-    <div class="field w"><label for="dNom">Nombre del documento</label><input id="dNom" placeholder="Ej: Hoja de vida, Certificado calibración 2026" required></div>
+    <div class="field w"><label for="dNom">Nombre del documento</label><input id="dNom" placeholder="Ej: Hoja de vida, Manual de usuario" required></div>
     <div class="field w"><label for="dUrl">Enlace (Google Drive, GitHub…)</label><input id="dUrl" type="url" placeholder="https://" required><p>En Drive: abre el PDF, toca Compartir, cambia el acceso a "Cualquier persona con el enlace" y copia el enlace.</p></div>
     <div class="actions field w"><button class="btn pri" type="submit">Guardar documento</button><button class="btn" type="button" data-act="volverEq">Volver</button></div>
   </form>`;
@@ -971,10 +923,7 @@ function editForm(e,isNew){
     <div class="field"><label for="eServS">Servicio</label><select id="eServS">${sv.map(([id,s])=>`<option value="${esc(id)}" ${id===e.sid?'selected':''}>${esc(s.nombre)}</option>`).join('')}<option value="__nuevo">Otro servicio…</option></select></div>
     ${f('eUbic','Ubicación',e.ubicacion)}
     <div class="field w" id="newServBox" hidden><label for="eServNuevo">Nombre del servicio nuevo</label><input id="eServNuevo"></div>
-    <div class="field"><label for="eMet">Control metrológico</label><select id="eMet">${['CALIBRACION','NO REQUIERE','CONTROL DE CALIDAD','VALIDACION'].map(o=>`<option ${o===(e.metrologia||'NO REQUIERE')?'selected':''}>${o}</option>`).join('')}</select></div>
     <div class="field"><label for="ePri">Prioridad</label><select id="ePri">${['','ALTA','MEDIA','BAJA'].map(o=>`<option value="${o}" ${o===(e.prioridad||'')?'selected':''}>${o||'—'}</option>`).join('')}</select></div>
-    ${f('eUlt','Última calibración',e.ultimaCal,'date')}${f('eVence','Próximo vencimiento',e.vence,'date')}
-    ${f('eValor','Valor estimado calibración',e.valor,'number',true)}
     <div class="field w"><label for="eObs">Observaciones</label><textarea id="eObs" rows="3">${esc(e.obs||'')}</textarea></div>
     <div class="actions field w"><button class="btn pri" type="submit">${isNew?'Crear equipo':'Guardar cambios'}</button><button class="btn" type="button" data-act="${isNew?'cerrar':'volverEq'}">Cancelar</button></div>
   </form>`;
@@ -985,9 +934,8 @@ function editForm(e,isNew){
     ev.preventDefault();const btn=$('#edForm button[type=submit]');
     let sid=es.value,nombre=servicios[sid]?.nombre;
     if(sid==='__nuevo'){nombre=$('#eServNuevo').value.trim().toUpperCase();if(!nombre){toast('Escribe el nombre del servicio');return}sid=slug(nombre)}
-    const data={equipo:$('#eEquipo').value.trim().toUpperCase(),inv:$('#eInv').value.trim(),serie:$('#eSerie').value.trim(),marca:$('#eMarca').value.trim().toUpperCase(),modelo:$('#eModelo').value.trim(),ubicacion:$('#eUbic').value.trim().toUpperCase(),metrologia:$('#eMet').value,prioridad:$('#ePri').value,ultimaCal:$('#eUlt').value,vence:$('#eVence').value,valor:$('#eValor').value?Number($('#eValor').value):null,obs:$('#eObs').value.trim()};
+    const data={equipo:$('#eEquipo').value.trim().toUpperCase(),inv:$('#eInv').value.trim(),serie:$('#eSerie').value.trim(),marca:$('#eMarca').value.trim().toUpperCase(),modelo:$('#eModelo').value.trim(),ubicacion:$('#eUbic').value.trim().toUpperCase(),prioridad:$('#ePri').value,obs:$('#eObs').value.trim()};
     if(!data.equipo){toast('Escribe el nombre del equipo');return}
-    if(data.ultimaCal&&!data.vence&&data.metrologia!=='NO REQUIERE')data.vence=addMonths(data.ultimaCal,12);
     btn.disabled=true;
     try{
       if(isNew){
@@ -1007,7 +955,7 @@ function editForm(e,isNew){
 }
 function loginForm(){
   const html=`<form id="lgForm" class="form">
-    <p class="field w" style="margin:0;color:var(--muted)">Para ver no necesitas entrar. Entra solo si vas a registrar mantenimientos, calibraciones o editar equipos.</p>
+    <p class="field w" style="margin:0;color:var(--muted)">Para ver no necesitas entrar. Entra solo si vas a registrar mantenimientos o editar equipos.</p>
     <div class="field w"><label for="lgMail">Correo</label><input id="lgMail" type="email" autocomplete="username" required></div>
     <div class="field w"><label for="lgPass">Contraseña</label><input id="lgPass" type="password" autocomplete="current-password" required></div>
     <div class="actions field w"><button class="btn pri" type="submit">Entrar</button><button class="btn" type="button" data-act="cerrar">Cancelar</button></div>
@@ -1050,7 +998,7 @@ async function descargar(nombre,hojas,btn){
 }
 function exportMatriz(btn){
   const cab=['SERVICIO','ÁREA','UBICACIÓN','EQUIPO','MARCA','MODELO','SERIE','ACTIVO FIJO','RIESGO','PERIODICIDAD','MES PROGRAMADO','ESTADO','FECHA DE REALIZACIÓN','REALIZADO POR','SOPORTE','OBSERVACIONES'];
-  const filas=[[`MATRIZ DE EVIDENCIAS · MANTENIMIENTO PREVENTIVO ${anio} · CLÍNICA LA MERCED`],[`Fecha de corte: ${fmt(TODAY)}`],[],cab],links=[];
+  const filas=[[`REGISTRO DE MANTENIMIENTO PREVENTIVO ${anio} · CLÍNICA LA MERCED`],[`Fecha de corte: ${fmt(TODAY)}`],[],cab],links=[];
   for(const it of items){
     for(const m of mesesDe(it)){
       const v=it.meses['m'+m],x=it.ejec['m'+m]||{},c=cmpMes(m);
@@ -1066,10 +1014,10 @@ function exportMatriz(btn){
     ['Preventivos programados hasta la fecha',S.prog,''],['Preventivos realizados hasta la fecha',S.hech,''],
     ['Preventivos atrasados',S.atr.length,0],['Equipos con preventivo atrasado',S.eqAtr,0],
     ['Realizados con soporte digital (%)',pc(S.rSop,S.rTot)??0,META.soporte],
-    ['Calibraciones al día (%)',pc(calStats().alDia,calStats().req.length)??0,META.calibracion],[],
+    [],
     ['Servicio','Programados a la fecha','Realizados','Cumplimiento (%)','Atrasados','Equipos'],
     ...S.serv.map(s=>[s.nombre,s.prog,s.hech,pc(s.hech,s.prog)??'',s.atr,s.eq])];
-  descargar(`matriz-evidencias-preventivo-${anio}-${TODAY}.xlsx`,[{nombre:'Resumen',filas:res,anchos:[44,22,14,16,12,10]},{nombre:'Matriz de evidencias',filas,links,filtro:3,anchos:[22,20,24,28,16,16,20,14,8,13,12,18,14,22,22,40]}],btn);
+  descargar(`registro-mantenimiento-preventivo-${anio}-${TODAY}.xlsx`,[{nombre:'Resumen',filas:res,anchos:[44,22,14,16,12,10]},{nombre:'Registro',filas,links,filtro:3,anchos:[22,20,24,28,16,16,20,14,8,13,12,18,14,22,22,40]}],btn);
 }
 function exportCrono(btn){
   const hojas=[];const byDoc={};
@@ -1082,9 +1030,10 @@ function exportCrono(btn){
   descargar(`cronograma-preventivo-${anio}.xlsx`,hojas,btn);
 }
 function exportInv(btn){
-  const cols=[['id','CODIGO APP'],['inv','INVENTARIO'],['equipo','EQUIPO'],['marca','MARCA'],['modelo','MODELO'],['serie','SERIE'],['servicio','SERVICIO'],['ubicacion','UBICACION'],['metrologia','CONTROL METROLOGICO'],['prioridad','PRIORIDAD'],['ultimaCal','FECHA DE REALIZACION'],['vence','FECHA DE VENCIMIENTO'],['valor','VALOR ESTIMADO'],['estado','ESTADO'],['obs','OBSERVACIONES']];
-  const filas=[cols.map(c=>c[1]),...equipos.map(e=>cols.map(([k])=>k==='estado'?EST[e.est]:k==='id'?e.id.toUpperCase():(k==='ultimaCal'||k==='vence')?(e[k]?fmt(e[k]):''):(e[k]??'')))];
-  descargar(`inventario-equipos-${TODAY}.xlsx`,[{nombre:'Inventario',filas,filtro:0,anchos:[12,14,28,16,16,20,24,24,18,10,14,14,14,14,30]}],btn);
+  const pm=prevPorEquipo();
+  const cab=['CODIGO APP','INVENTARIO','EQUIPO','MARCA','MODELO','SERIE','SERVICIO','UBICACION','PRIORIDAD','ESTADO','MANTENIMIENTO PREVENTIVO','OBSERVACIONES'];
+  const filas=[cab,...equipos.map(e=>{const st=estEq(e,pm);return[e.id.toUpperCase(),e.inv||'',e.equipo||'',e.marca||'',e.modelo||'',e.serie||'',e.servicio||'',e.ubicacion||'',e.prioridad||'',e.baja?'De baja':'Activo',st==='baja'?'':st==='sin'?'No está en el cronograma':ESTP[st],e.obs||'']})];
+  descargar(`inventario-equipos-${TODAY}.xlsx`,[{nombre:'Inventario',filas,filtro:0,anchos:[12,14,28,16,16,20,24,24,10,10,24,30]}],btn);
 }
 
 /* ===== administración ===== */
@@ -1132,7 +1081,6 @@ $('#themeBtn').onclick=()=>{
 document.addEventListener('click',async ev=>{
   const g=ev.target.closest('[data-go]');if(g){closeSheet();go(g.dataset.go,true);return}
   const al=ev.target.closest('[data-alerta]');if(al){F.alerta=al.dataset.alerta;F.aLim=120;renderAlertas();return}
-  const tl=ev.target.closest('[data-tile]');if(tl){F.calTile=tl.dataset.tile;F.calLim=80;renderCal();return}
   const a=ev.target.closest('[data-act]');if(!a)return;
   const it=a.dataset.d?itemKey(a.dataset.d,a.dataset.id):null;
   const e=abierto&&abierto.t==='eq'?byId(abierto.id):null;
@@ -1173,9 +1121,6 @@ $('#cMes').onchange=()=>{F.cMes=$('#cMes').value;F.cLim=150;renderCrono()};
 $('#cAnio').onchange=()=>{anio=Number($('#cAnio').value);rebuildPrev();renderView()};
 $('#cMore').onclick=()=>{F.cLim+=200;renderCrono()};
 $('#cAdd').onclick=()=>{if(!anios.length&&!Object.keys(prevDocs).length){toast('Primero carga el cronograma en Reportes');return}formPrev(null)};
-$('#calq').addEventListener('input',deb(()=>{F.calq=$('#calq').value;F.calLim=80;renderCal()}));
-$('#calServ').onchange=()=>{F.calServ=$('#calServ').value;F.calLim=80;renderCal()};
-$('#calMore').onclick=()=>{F.calLim+=150;renderCal()};
 $('#eq').addEventListener('input',deb(()=>{F.eq=$('#eq').value;F.eLim=80;renderEquipos()}));
 $('#eServ').onchange=()=>{F.eServ=$('#eServ').value;F.eLim=80;renderEquipos()};
 $('#eEst').onchange=()=>{F.eEst=$('#eEst').value;F.eLim=80;renderEquipos()};
