@@ -1,0 +1,13 @@
+[
+ {
+  "fecha": "2026-09-27",
+  "hora": "21:12",
+  "destinatarios": 2,
+  "atrasados": 0,
+  "esteMes": 0,
+  "proximoMes": 0,
+  "calVencidas": 2,
+  "calPorVencer": 52,
+  "cumplimiento": null
+ }
+]
