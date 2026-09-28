@@ -1,0 +1,38 @@
+name: Correo semanal de alertas
+
+on:
+  schedule:
+    - cron: '0 12 * * 1'   # cada lunes a las 7:00 a. m. hora de Colombia
+  workflow_dispatch:       # botón "Run workflow" para enviarlo cuando quieras
+
+permissions:
+  contents: write
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    env:
+      TZ: America/Bogota
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Preparar el envío de correos
+        run: npm install --no-save nodemailer@6
+
+      - name: Revisar Firebase y enviar el correo
+        run: node alertas-correo.mjs
+        env:
+          CORREO_USUARIO: ${{ secrets.CORREO_USUARIO }}
+          CORREO_CLAVE: ${{ secrets.CORREO_CLAVE }}
+          CORREO_DESTINO: ${{ secrets.CORREO_DESTINO }}
+
+      - name: Guardar el registro del envío
+        run: |
+          git config user.name "Alertas CLM"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add alertas-registro.json
+          git diff --cached --quiet || (git commit -m "Registro de alertas $(date +%F)" && git push)
