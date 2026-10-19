@@ -45,5 +45,14 @@
   "esteMes": 144,
   "proximoMes": 301,
   "cumplimiento": 87
+ },
+ {
+  "fecha": "2026-10-19",
+  "hora": "13:19",
+  "destinatarios": 2,
+  "atrasados": 131,
+  "esteMes": 144,
+  "proximoMes": 301,
+  "cumplimiento": 87
  }
 ]
